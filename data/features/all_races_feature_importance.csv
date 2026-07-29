@@ -1,0 +1,10 @@
+feature,importance
+throttle_brake_overlap,0.21537638
+gear_change_freq,0.17011896
+brake_duration_ratio,0.11529329
+mean_corner_speed,0.11282449
+coasting_ratio,0.10675957
+throttle_smoothness,0.09172556
+full_throttle_ratio,0.07829566
+speed_variance,0.06481832
+speed_at_throttle_lift,0.04478782

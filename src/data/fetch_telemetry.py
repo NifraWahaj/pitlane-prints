@@ -95,27 +95,37 @@ def main():
 
     setup_cache(config["data"]["cache_dir"])
 
-    session = load_session(
-        year=config["session"]["year"],
-        race=config["session"]["race"],
-        session_type=config["session"]["session_type"],
-    )
-
     channels = config["telemetry_channels"]
     processed_dir = config["data"]["processed_dir"]
-    race_tag = f"{config['session']['year']}_{config['session']['race'].lower()}"
 
-    for driver in config["drivers"]:
-        print(f"\n[driver] Processing {driver}...")
-        df = get_driver_telemetry(session, driver, channels)
+    for race_cfg in config["races"]:
+        race_tag = f"{race_cfg['year']}_{race_cfg['race'].lower()}"
+        print(f"\n{'='*60}\n[race] {race_tag}\n{'='*60}")
 
-        if df.empty:
+        try:
+            session = load_session(
+                year=race_cfg["year"],
+                race=race_cfg["race"],
+                session_type=race_cfg["session_type"],
+            )
+        except Exception as e:
+            print(f"  [warn] Skipping {race_tag} — failed to load session: {e}")
             continue
 
-        out_path = os.path.join(processed_dir, race_tag, f"{driver}.parquet")
-        save_parquet(df, out_path)
+        for driver in config["drivers"]:
+            print(f"\n[driver] Processing {driver}...")
+            df = get_driver_telemetry(session, driver, channels)
 
-    print("\n[done] All drivers processed.")
+            if df.empty:
+                continue
+
+            df["Race"] = race_cfg["race"]
+            df["Season"] = race_cfg["year"]
+
+            out_path = os.path.join(processed_dir, race_tag, f"{driver}.parquet")
+            save_parquet(df, out_path)
+
+    print("\n[done] All races and drivers processed.")
 
 
 if __name__ == "__main__":

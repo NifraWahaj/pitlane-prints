@@ -122,6 +122,7 @@ def train_and_evaluate(X, y, le, groups=None, random_seed: int = 42):
     cm_df = pd.DataFrame(cm, index=le.classes_, columns=le.classes_)
     print(cm_df)
 
+    y_pred_group, y_prob_group = None, None
     if groups is not None and len(set(groups)) >= 5:
         n_groups = len(set(groups))
         n_splits = min(5, n_groups)
@@ -129,6 +130,7 @@ def train_and_evaluate(X, y, le, groups=None, random_seed: int = 42):
 
         print(f"\n[cv] Running {n_splits}-fold GROUP cross-validation (held-out circuits)...")
         y_pred_group = cross_val_predict(model, X, y, cv=gkf, groups=groups, method="predict")
+        y_prob_group = cross_val_predict(model, X, y, cv=gkf, groups=groups, method="predict_proba")
         acc_group = accuracy_score(y, y_pred_group)
         print(f"\n[result] Cross-circuit (GroupKFold) accuracy: {acc_group:.4f}  ({acc_group*100:.1f}%)")
         print(f"[result] Classification report (cross-circuit):")
@@ -148,7 +150,32 @@ def train_and_evaluate(X, y, le, groups=None, random_seed: int = 42):
     print("\n[train] Fitting final model on full dataset...")
     model.fit(X, y)
 
-    return model, y_pred_oof, y_prob_oof, cm
+    return model, y_pred_oof, y_prob_oof, y_pred_group, y_prob_group, cm
+
+
+def save_oof_predictions(df, le, y_pred_oof, y_prob_oof, y_pred_group, y_prob_group, features_dir):
+    """
+    Save every lap's genuinely out-of-fold prediction — the model that scored
+    it never saw it during training. This is what the dashboard's "Blind
+    Identification Challenge" should sample from, instead of asking the
+    final model (fit on 100% of the data) to re-score laps it already
+    memorized, which would make the demo unverifiable / trivially "rigged".
+    """
+    out = df[["Driver", "Race", "Season", "LapNumber", "LapTime_s"]].copy()
+
+    out["oof_pred_intrack"] = le.inverse_transform(y_pred_oof)
+    for i, cls in enumerate(le.classes_):
+        out[f"oof_prob_intrack_{cls}"] = y_prob_oof[:, i]
+
+    if y_pred_group is not None:
+        out["oof_pred_crosscircuit"] = le.inverse_transform(y_pred_group)
+        for i, cls in enumerate(le.classes_):
+            out[f"oof_prob_crosscircuit_{cls}"] = y_prob_group[:, i]
+
+    path = os.path.join(features_dir, "all_races_oof_predictions.csv")
+    out.to_csv(path, index=False)
+    print(f"\n[saved] Out-of-fold predictions → {path}")
+    return path
 
 
 def save_model(model, le, models_dir: str, race_tag: str):
@@ -180,8 +207,11 @@ def main():
 
     df = load_features(features_dir, race_tag)
     X, y, le, groups = prepare_xy(df)
-    model, y_pred, y_prob, cm = train_and_evaluate(X, y, le, groups=groups, random_seed=seed)
+    model, y_pred, y_prob, y_pred_group, y_prob_group, cm = train_and_evaluate(
+        X, y, le, groups=groups, random_seed=seed
+    )
     save_model(model, le, models_dir, race_tag)
+    save_oof_predictions(df, le, y_pred, y_prob, y_pred_group, y_prob_group, features_dir)
 
     fi = get_feature_importance(model, FEATURE_COLS)
     print("\n── Feature importance (final model) ──")

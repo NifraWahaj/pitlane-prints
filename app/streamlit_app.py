@@ -34,11 +34,11 @@ st.markdown("""
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-.stApp { background-color: #08080e; color: #dddde8; }
+.stApp { background-color: #ffffff; color: #1a1a2e; }
 
 [data-testid="stSidebar"] {
-    background-color: #0f0f18 !important;
-    border-right: 1px solid #1e1e2e;
+    background-color: #f8f9fc !important;
+    border-right: 1px solid #e6e6ef;
 }
 [data-testid="stSidebar"] * { font-size: 0.875rem; }
 
@@ -53,7 +53,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 2.75rem;
     letter-spacing: -0.02em;
     line-height: 1;
-    color: #fff;
+    color: #14141f;
     margin: 0;
 }
 .hero-sub {
@@ -66,7 +66,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 }
 .hero-desc {
     font-size: 0.9rem;
-    color: #6b6b8a;
+    color: #5a5f78;
     margin-top: 10px;
     max-width: 680px;
     line-height: 1.6;
@@ -76,14 +76,14 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .stat-strip {
     display: flex;
     gap: 1px;
-    background: #1e1e2e;
+    background: #e6e6ef;
     border-radius: 6px;
     overflow: hidden;
     margin-bottom: 2.5rem;
 }
 .stat-item {
     flex: 1;
-    background: #0f0f18;
+    background: #fbfbfe;
     padding: 1rem 1.25rem;
     min-width: 0;
 }
@@ -92,7 +92,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 0.65rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #4a4a6a;
+    color: #6b7280;
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -107,7 +107,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 }
 .stat-note {
     font-size: 0.7rem;
-    color: #4a4a6a;
+    color: #8a8fa3;
     margin-top: 3px;
 }
 
@@ -118,37 +118,38 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 0.7rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #4a4a6a;
+    color: #6b7280;
     padding-bottom: 8px;
-    border-bottom: 1px solid #1e1e2e;
+    border-bottom: 1px solid #e6e6ef;
     margin-bottom: 1rem;
 }
 
 /* ── Chart card ── */
 .chart-card {
-    background: #0f0f18;
-    border: 1px solid #1e1e2e;
-    border-radius: 6px;
+    background: #fbfbfe;
+    border: 1px solid #e6e6ef;
+    border-radius: 8px;
     padding: 1.25rem 1.25rem 0.75rem;
     height: 100%;
+    box-shadow: 0 1px 2px rgba(20,20,31,0.03);
 }
 
 /* ── Caption ── */
 .chart-caption {
     font-size: 0.78rem;
-    color: #4a4a6a;
+    color: #6b7280;
     line-height: 1.55;
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid #1e1e2e;
+    border-top: 1px solid #e6e6ef;
 }
-.chart-caption b { color: #8a8aaa; }
+.chart-caption b { color: #33374a; }
 
 /* ── Blind ID panel ── */
 .blind-panel {
-    background: #0f0f18;
-    border: 1px solid #1e1e2e;
-    border-radius: 6px;
+    background: #fbfbfe;
+    border: 1px solid #e6e6ef;
+    border-radius: 8px;
     padding: 1.25rem;
 }
 .blind-driver-name {
@@ -159,7 +160,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 }
 .blind-driver-full {
     font-size: 0.8rem;
-    color: #4a4a6a;
+    color: #6b7280;
     margin-top: 2px;
     margin-bottom: 1rem;
 }
@@ -171,7 +172,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 0.82rem;
     margin-bottom: 3px;
 }
-.prob-track { background: #1a1a28; border-radius: 2px; height: 4px; }
+.prob-track { background: #eceef4; border-radius: 2px; height: 4px; }
 .verdict {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 1.2rem;
@@ -180,8 +181,19 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     margin-top: 1rem;
 }
 
+/* ── Verify table ── */
+.verify-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.verify-table td { padding: 4px 8px; border-bottom: 1px solid #eceef4; }
+.verify-table td:first-child { color: #6b7280; }
+.verify-table td:last-child { text-align: right; font-weight: 600; color: #14141f; }
+
 /* ── Divider ── */
 .spacer { height: 2rem; }
+
+/* ── Buttons ── */
+.stButton > button {
+    border-radius: 6px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -190,7 +202,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 # ─────────────────────────────────────────────
 DRIVER_COLORS = {
     "VER": "#3b82f6", "HAM": "#a78bfa", "ALO": "#f87171",
-    "LEC": "#f97316", "SAI": "#facc15", "NOR": "#34d399",
+    "LEC": "#f97316", "SAI": "#ca8a04", "NOR": "#16a34a",
 }
 DRIVER_NAMES = {
     "VER": "Max Verstappen", "HAM": "Lewis Hamilton", "ALO": "Fernando Alonso",
@@ -208,10 +220,10 @@ FEATURE_LABELS = [
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-PLOT_BG   = "#0f0f18"
-PAPER_BG  = "#08080e"
-GRID_COL  = "#1a1a28"
-TEXT_COL  = "#dddde8"
+PLOT_BG   = "#ffffff"
+PAPER_BG  = "#ffffff"
+GRID_COL  = "#eceef4"
+TEXT_COL  = "#1a1a2e"
 FONT      = "Inter"
 
 # ─────────────────────────────────────────────
@@ -234,20 +246,24 @@ def load_all_data():
     xgb_model   = joblib.load(os.path.join(models_dir,   f"{race_tag}_xgb_baseline.pkl"))
     xgb_le      = joblib.load(os.path.join(models_dir,   f"{race_tag}_label_encoder.pkl"))
 
-    # Raw Telemetry Explorer shows one race at a time — default to the most
-    # recent configured race (Season/Race combo must be unique per lap here).
-    explorer_race = config["races"][-1]
-    explorer_tag  = f"{explorer_race['year']}_{explorer_race['race'].lower()}"
+    oof_path = os.path.join(features_dir, f"{race_tag}_oof_predictions.csv")
+    oof_df = pd.read_csv(oof_path) if os.path.exists(oof_path) else None
 
+    # Raw telemetry, keyed by (race_tag, driver) — loaded for every configured
+    # race so the Blind ID Challenge can show the exact lap trace it scored,
+    # and the Telemetry Explorer can browse any race, not just one.
     raw = {}
-    for driver in config["drivers"]:
-        path = os.path.join(processed_dir, explorer_tag, f"{driver}.parquet")
-        try:
-            raw[driver] = pd.read_parquet(path)
-        except FileNotFoundError:
-            raw[driver] = pd.DataFrame()
+    for race_cfg in config["races"]:
+        rtag = f"{race_cfg['year']}_{race_cfg['race'].lower()}"
+        raw[rtag] = {}
+        for driver in config["drivers"]:
+            path = os.path.join(processed_dir, rtag, f"{driver}.parquet")
+            try:
+                raw[rtag][driver] = pd.read_parquet(path)
+            except FileNotFoundError:
+                raw[rtag][driver] = pd.DataFrame()
 
-    return features_df, umap_df, history_df, fi_df, xgb_model, xgb_le, raw, config, race_tag
+    return features_df, umap_df, history_df, fi_df, xgb_model, xgb_le, oof_df, raw, config, race_tag
 
 
 def base_layout(height=None):
@@ -284,10 +300,10 @@ def make_radar(features_df, selected_drivers):
         polar=dict(
             bgcolor=PLOT_BG,
             radialaxis=dict(visible=True, range=[0, 1], gridcolor=GRID_COL,
-                            tickfont=dict(color="#3a3a5a", size=8), tickvals=[0.25,0.5,0.75,1.0]),
-            angularaxis=dict(gridcolor=GRID_COL, tickfont=dict(color="#8a8aaa", size=10)),
+                            tickfont=dict(color="#8a8fa3", size=8), tickvals=[0.25,0.5,0.75,1.0]),
+            angularaxis=dict(gridcolor=GRID_COL, tickfont=dict(color="#9aa0b4", size=10)),
         ),
-        legend=dict(bgcolor=PLOT_BG, bordercolor="#1e1e2e", borderwidth=1,
+        legend=dict(bgcolor=PLOT_BG, bordercolor="#e6e6ef", borderwidth=1,
                     font=dict(size=10), orientation="v", x=1.05, y=1)
                             )
     return fig
@@ -304,7 +320,7 @@ def make_umap(umap_df, highlight=None):
             name=DRIVER_NAMES.get(driver, driver),
             marker=dict(color=color, size=8 if not dimmed else 6,
                         opacity=0.85 if not dimmed else 0.12,
-                        line=dict(width=0.5, color="white")),
+                        line=dict(width=0.75, color="#ffffff")),
             hovertemplate=f"<b>{driver}</b> · Lap %{{customdata}}<extra></extra>",
             customdata=sub["LapNumber"],
         ))
@@ -352,7 +368,7 @@ def make_feature_importance(fi_df):
                     colorscale=[[0, "#1a1a2e"], [0.4, "#3b3b6e"], [1, "#e10600"]],
                     showscale=False),
         text=[f"{v:.3f}" for v in df["importance"]],
-        textposition="outside", textfont=dict(size=9, color="#4a4a6a"),
+        textposition="outside", textfont=dict(size=9, color="#6b7280"),
     ))
     fig.update_layout(
         **base_layout(320),
@@ -383,7 +399,7 @@ def make_training_curve(history_df):
         yaxis=dict(title_text="Accuracy (%)", gridcolor=GRID_COL, range=[0, 105]),
         legend=dict(
             bgcolor=PLOT_BG,
-            bordercolor="#1e1e2e",
+            bordercolor="#e6e6ef",
             font=dict(size=10)
         ),
     )
@@ -394,7 +410,7 @@ def make_training_curve(history_df):
 # Load data
 # ─────────────────────────────────────────────
 try:
-    features_df, umap_df, history_df, fi_df, xgb_model, xgb_le, raw, config, race_tag = load_all_data()
+    features_df, umap_df, history_df, fi_df, xgb_model, xgb_le, oof_df, raw, config, race_tag = load_all_data()
 except Exception as e:
     st.error(f"Could not load data: {e}\n\nRun the pipeline scripts first.")
     st.stop()
@@ -407,7 +423,7 @@ all_drivers = config["drivers"]
 with st.sidebar:
     st.markdown("""
     <div style='font-family:Barlow Condensed;font-size:1.3rem;font-weight:800;
-    color:#fff;letter-spacing:-0.01em;margin-bottom:2px;'>F1 Telemetry Lens</div>
+    color:#14141f;letter-spacing:-0.01em;margin-bottom:2px;'>F1 Telemetry Lens</div>
     <div style='font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:0.16em;
     text-transform:uppercase;color:#e10600;margin-bottom:1.5rem;'>Driver Style Fingerprinting</div>
     """, unsafe_allow_html=True)
@@ -432,24 +448,31 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("**Telemetry viewer**")
+    race_options = [f"{r['year']}_{r['race'].lower()}" for r in config["races"]]
+    telem_race = st.selectbox(
+        "trace", options=race_options,
+        format_func=lambda t: t.replace("_", " ").title(),
+        index=len(race_options) - 1,
+        label_visibility="collapsed",
+    )
     telem_driver = st.selectbox(
         "tdriver", options=all_drivers,
         format_func=lambda x: f"{x} — {DRIVER_NAMES.get(x, x)}",
         label_visibility="collapsed",
     )
-    has_telem = not raw[telem_driver].empty
+    has_telem = telem_race in raw and not raw[telem_race][telem_driver].empty
     if has_telem:
-        lap_options = sorted(raw[telem_driver]["LapNumber"].dropna().unique().astype(int))
+        lap_options = sorted(raw[telem_race][telem_driver]["LapNumber"].dropna().unique().astype(int))
         telem_lap   = st.selectbox("tlap", options=lap_options,
                                    index=min(9, len(lap_options)-1),
                                    label_visibility="collapsed")
     else:
         telem_lap = None
-        st.caption("Telemetry unavailable in this environment.")
+        st.caption("Telemetry unavailable for this race in this environment.")
 
     st.markdown("---")
     st.markdown("""
-    <div style='font-size:0.65rem;color:#2a2a4a;line-height:1.7;'>
+    <div style='font-size:0.65rem;color:#c7cad6;line-height:1.7;'>
     DATA · FastF1<br>
     ML · XGBoost + 1D-CNN<br>
     VIZ · UMAP (32→2 dim)
@@ -477,14 +500,14 @@ stat_items = [
     ("#e10600", "XGBoost In-Track", "84.4%", "5-fold stratified OOF"),
     ("#f97316", "XGBoost Cross-Track", "61.2%", "GroupKFold, held-out circuits"),
     ("#a78bfa", "Silhouette",  "0.51",  "32-dim embeddings, cross-circuit"),
-    ("#facc15", "Races",       str(len(config["races"])), "2023–2024, 6 circuits"),
+    ("#ca8a04", "Races",       str(len(config["races"])), "2023–2024, 6 circuits"),
     ("#3b82f6", "Laps",        str(len(features_df)), "after quality filter"),
 ]
 cols = st.columns(len(stat_items))
 for col, (color, label, value, note) in zip(cols, stat_items):
     with col:
         st.markdown(f"""
-        <div style='background:#0f0f18;border:1px solid #1e1e2e;border-top:2px solid {color};
+        <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-top:2px solid {color};
         border-radius:6px;padding:1rem 1.1rem;'>
           <div class='stat-label'>{label}</div>
           <div class='stat-value' style='color:{color}'>{value}</div>
@@ -530,103 +553,152 @@ st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
 # Row: Blind ID (full width, styled panel)
 # ─────────────────────────────────────────────
 st.markdown("<div class='section-header'>Blind Identification Challenge</div>", unsafe_allow_html=True)
-st.markdown("""<p style='font-size:0.85rem;color:#4a4a6a;margin-bottom:1rem;margin-top:-0.5rem;'>
-Pick a random lap from the dataset. The XGBoost model predicts which driver it belongs to
-using only the 9 engineered features — no lap number, no context.
+st.markdown("""<p style='font-size:0.85rem;color:#6b7280;margin-bottom:1rem;margin-top:-0.5rem;'>
+Pick a random lap. The prediction shown is a genuine <b>out-of-fold</b> prediction, recorded once
+during cross-validation — the model that scored this exact lap never saw it during training. It is
+not the final model (which is fit on 100% of the data) re-scoring a lap it already memorized. Every
+number below is checkable: the feature values fed to the model and the raw telemetry trace for the
+lap are both shown so you can verify the prediction wasn't cherry-picked.
 </p>""", unsafe_allow_html=True)
 
-bcol_btn, bcol_result, bcol_bars = st.columns([1, 1, 2], gap="large")
-
-with bcol_btn:
-    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-    if st.button("🎲  Pick random lap", use_container_width=True, type="primary"):
-        st.session_state["blind_lap"] = features_df.sample(1).iloc[0]
-    st.markdown("""<div style='font-size:0.75rem;color:#3a3a5a;margin-top:0.75rem;line-height:1.6;'>
-    84.4% of the time the model is correct on a lap from a track it has seen before;
-    that drops to 61.2% on a held-out circuit. HAM and LEC are hardest to tell apart —
-    their trail-braking-heavy styles overlap most.
-    </div>""", unsafe_allow_html=True)
-
-if "blind_lap" in st.session_state:
-    blind       = st.session_state["blind_lap"]
-    X_blind     = blind[FEATURE_COLS].values.reshape(1, -1)
-    probs       = xgb_model.predict_proba(X_blind)[0]
-    classes     = xgb_le.classes_
-    pred_driver = classes[probs.argmax()]
-    true_driver = blind["Driver"]
-    correct     = pred_driver == true_driver
-    dcolor      = DRIVER_COLORS.get(true_driver, "#fff")
-    verdict_color = "#22c55e" if correct else "#e10600"
-    verdict_text  = "✓  CORRECT" if correct else "✗  WRONG"
-
-    with bcol_result:
-        st.markdown(f"""
-        <div style='background:#0f0f18;border:1px solid #1e1e2e;border-left:3px solid {dcolor};
-        border-radius:6px;padding:1.25rem;'>
-          <div style='font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:0.14em;
-          text-transform:uppercase;color:#3a3a5a;'>Actual · Lap {int(blind["LapNumber"])}</div>
-          <div style='font-family:Barlow Condensed;font-size:3rem;font-weight:800;
-          color:{dcolor};line-height:1;margin:4px 0 2px;'>{true_driver}</div>
-          <div style='font-size:0.8rem;color:#4a4a6a;'>{DRIVER_NAMES.get(true_driver, true_driver)}</div>
-          <div style='font-family:Barlow Condensed;font-size:1.1rem;font-weight:700;
-          color:{verdict_color};letter-spacing:0.06em;margin-top:1rem;'>{verdict_text}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with bcol_bars:
-        bars_html = ""
-        for cls, prob in sorted(zip(classes, probs), key=lambda x: x[1], reverse=True):
-            bc      = DRIVER_COLORS.get(cls, "#888")
-            is_pred = cls == pred_driver
-            weight  = "700" if is_pred else "400"
-            prefix  = "▶ " if is_pred else "&nbsp;&nbsp;&nbsp;"
-            opacity = "1" if is_pred else "0.3"
-            bars_html += f"""
-            <div style='margin-bottom:9px;'>
-              <div style='display:flex;justify-content:space-between;
-              font-family:Barlow Condensed;font-size:0.88rem;margin-bottom:3px;'>
-                <span style='color:{bc};font-weight:{weight};'>{prefix}{cls} — {DRIVER_NAMES.get(cls,cls)}</span>
-                <span style='color:#8a8aaa;'>{prob*100:.1f}%</span>
-              </div>
-              <div style='background:#1a1a28;border-radius:3px;height:5px;'>
-                <div style='background:{bc};width:{prob*100:.1f}%;height:5px;
-                border-radius:3px;opacity:{opacity};transition:width 0.3s;'></div>
-              </div>
-            </div>"""
-
-        st.markdown("<div style='margin-bottom:10px;font-weight:600;'>Model confidence</div>", unsafe_allow_html=True)
-
-        st.components.v1.html(
-            f"""
-            <div style='background:#0f0f18;border:1px solid #1e1e2e;border-radius:6px;
-            padding:1.25rem;font-family:Inter;color:#dddde8;'>
-                {bars_html}
-            </div>
-            """,
-            height=250,
-            scrolling=True
-        )
-
-
+if oof_df is None:
+    st.warning("Out-of-fold predictions file not found. Re-run `python src/models/baseline.py` to generate it.")
 else:
-    with bcol_result:
-        st.markdown("""
-        <div style='background:#0f0f18;border:1px dashed #1e1e2e;border-radius:6px;
-        padding:2rem;text-align:center;color:#2a2a4a;
-        font-family:Barlow Condensed;font-size:0.9rem;letter-spacing:0.06em;'>
-        AWAITING SELECTION
+    mode = st.radio(
+        "Evaluation mode",
+        options=["In-track (84.4% acc)", "Cross-circuit — held-out track (61.2% acc, harder)"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    is_crosscircuit = mode.startswith("Cross-circuit")
+    pred_col_prefix = "oof_pred_crosscircuit" if is_crosscircuit else "oof_pred_intrack"
+    prob_col_prefix = "oof_prob_crosscircuit" if is_crosscircuit else "oof_prob_intrack"
+
+    bcol_btn, bcol_result, bcol_bars = st.columns([1, 1, 2], gap="large")
+
+    with bcol_btn:
+        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+        if st.button("🎲  Pick random lap", use_container_width=True, type="primary"):
+            st.session_state["blind_idx"] = oof_df.sample(1).index[0]
+        st.markdown("""<div style='font-size:0.75rem;color:#8a8fa3;margin-top:0.75rem;line-height:1.6;'>
+        HAM and LEC are hardest to tell apart in cross-circuit mode — their trail-braking-heavy
+        styles overlap most. VER and NOR hold up best on unseen tracks.
         </div>""", unsafe_allow_html=True)
+
+    if "blind_idx" in st.session_state and st.session_state["blind_idx"] in oof_df.index:
+        blind       = oof_df.loc[st.session_state["blind_idx"]]
+        true_driver = blind["Driver"]
+        pred_driver = blind[pred_col_prefix]
+        probs       = {cls: blind[f"{prob_col_prefix}_{cls}"] for cls in xgb_le.classes_}
+        correct     = pred_driver == true_driver
+        dcolor      = DRIVER_COLORS.get(true_driver, "#14141f")
+        verdict_color = "#16a34a" if correct else "#e10600"
+        verdict_text  = "✓  CORRECT" if correct else "✗  WRONG"
+
+        with bcol_result:
+            st.markdown(f"""
+            <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-left:3px solid {dcolor};
+            border-radius:8px;padding:1.25rem;'>
+              <div style='font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:0.14em;
+              text-transform:uppercase;color:#8a8fa3;'>Actual · {blind['Race']} {int(blind['Season'])} · Lap {int(blind["LapNumber"])}</div>
+              <div style='font-family:Barlow Condensed;font-size:3rem;font-weight:800;
+              color:{dcolor};line-height:1;margin:4px 0 2px;'>{true_driver}</div>
+              <div style='font-size:0.8rem;color:#6b7280;'>{DRIVER_NAMES.get(true_driver, true_driver)}
+              &nbsp;·&nbsp; Lap time {blind['LapTime_s']:.2f}s</div>
+              <div style='font-family:Barlow Condensed;font-size:1.1rem;font-weight:700;
+              color:{verdict_color};letter-spacing:0.06em;margin-top:1rem;'>{verdict_text}</div>
+              <div style='font-size:0.72rem;color:#9aa0b4;margin-top:2px;'>Predicted: {pred_driver}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with bcol_bars:
+            bars_html = ""
+            for cls, prob in sorted(probs.items(), key=lambda x: x[1], reverse=True):
+                bc      = DRIVER_COLORS.get(cls, "#888")
+                is_pred = cls == pred_driver
+                weight  = "700" if is_pred else "400"
+                prefix  = "▶ " if is_pred else "&nbsp;&nbsp;&nbsp;"
+                opacity = "1" if is_pred else "0.3"
+                bars_html += f"""
+                <div style='margin-bottom:9px;'>
+                  <div style='display:flex;justify-content:space-between;
+                  font-family:Barlow Condensed;font-size:0.88rem;margin-bottom:3px;'>
+                    <span style='color:{bc};font-weight:{weight};'>{prefix}{cls} — {DRIVER_NAMES.get(cls,cls)}</span>
+                    <span style='color:#9aa0b4;'>{prob*100:.1f}%</span>
+                  </div>
+                  <div style='background:#eceef4;border-radius:3px;height:5px;'>
+                    <div style='background:{bc};width:{prob*100:.1f}%;height:5px;
+                    border-radius:3px;opacity:{opacity};transition:width 0.3s;'></div>
+                  </div>
+                </div>"""
+
+            st.markdown("<div style='margin-bottom:10px;font-weight:600;'>Model confidence (out-of-fold)</div>", unsafe_allow_html=True)
+
+            st.components.v1.html(
+                f"""
+                <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-radius:8px;
+                padding:1.25rem;font-family:Inter;color:#1a1a2e;'>
+                    {bars_html}
+                </div>
+                """,
+                height=250,
+                scrolling=True
+            )
+
+        # ── Verify it yourself ──
+        with st.expander("🔍  Verify it yourself — feature values + raw telemetry for this exact lap"):
+            match = features_df[
+                (features_df["Driver"] == true_driver)
+                & (features_df["Race"] == blind["Race"])
+                & (features_df["Season"] == blind["Season"])
+                & (features_df["LapNumber"] == blind["LapNumber"])
+            ]
+            vcol1, vcol2 = st.columns([1, 1.6], gap="large")
+            with vcol1:
+                st.markdown("**Inputs fed to the model**")
+                if not match.empty:
+                    row = match.iloc[0]
+                    rows_html = "".join(
+                        f"<tr><td>{label}</td><td>{row[col]:.4f}</td></tr>"
+                        for col, label in zip(FEATURE_COLS, FEATURE_LABELS)
+                    )
+                    st.markdown(f"<table class='verify-table'>{rows_html}</table>", unsafe_allow_html=True)
+                else:
+                    st.caption("Feature row not found — features_df may be out of sync with the OOF file.")
+
+            with vcol2:
+                st.markdown("**Raw telemetry for this lap**")
+                rtag = f"{int(blind['Season'])}_{blind['Race'].lower()}"
+                if rtag in raw and not raw[rtag][true_driver].empty:
+                    fig_verify = make_telemetry(raw[rtag], true_driver, float(blind["LapNumber"]))
+                    if fig_verify:
+                        fig_verify.update_layout(height=260)
+                        st.plotly_chart(fig_verify, use_container_width=True)
+                    else:
+                        st.caption("No telemetry samples found for this lap.")
+                else:
+                    st.caption("Raw telemetry unavailable in this environment (parquet files not present).")
+
+    else:
+        with bcol_result:
+            st.markdown("""
+            <div style='background:#fbfbfe;border:1px dashed #e6e6ef;border-radius:8px;
+            padding:2rem;text-align:center;color:#c7cad6;
+            font-family:Barlow Condensed;font-size:0.9rem;letter-spacing:0.06em;'>
+            AWAITING SELECTION
+            </div>""", unsafe_allow_html=True)
 
 st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # Row: Telemetry (full width)
 # ─────────────────────────────────────────────
-telem_title = f"Raw Telemetry — {telem_driver} · Lap {telem_lap}" if telem_lap else f"Raw Telemetry — {telem_driver}"
+telem_title = (f"Raw Telemetry — {telem_driver} · {telem_race.replace('_', ' ').title()} · Lap {telem_lap}"
+               if telem_lap else f"Raw Telemetry — {telem_driver}")
 st.markdown(f"<div class='section-header'>{telem_title}</div>", unsafe_allow_html=True)
 
 if telem_lap is not None:
-    fig_t = make_telemetry(raw, telem_driver, float(telem_lap))
+    fig_t = make_telemetry(raw[telem_race], telem_driver, float(telem_lap))
     if fig_t:
         st.plotly_chart(fig_t, use_container_width=True)
     st.markdown("""<div class='chart-caption'>
@@ -637,8 +709,8 @@ if telem_lap is not None:
     Try selecting different drivers on the same lap number — the style differences are visible to the naked eye.
     </div>""", unsafe_allow_html=True)
 else:
-    st.markdown("""<div style='background:#0f0f18;border:1px dashed #1e1e2e;border-radius:6px;
-    padding:1.5rem;font-size:0.85rem;color:#3a3a5a;'>
+    st.markdown("""<div style='background:#fbfbfe;border:1px dashed #e6e6ef;border-radius:6px;
+    padding:1.5rem;font-size:0.85rem;color:#8a8fa3;'>
     Raw telemetry is not available in this deployed environment (files excluded due to size ~200MB).
     Clone the repo and run <code>python src/data/fetch_telemetry.py</code> to enable this panel locally.
     </div>""", unsafe_allow_html=True)

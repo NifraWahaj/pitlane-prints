@@ -3,10 +3,19 @@ data:
   processed_dir: "data/processed"
   features_dir: "data/features"
 
-session:
-  year: 2023
-  race: "Bahrain"          # starting with one race for milestone 1
-  session_type: "R"        # R = Race, Q = Qualifying
+races:
+  - {year: 2023, race: "Bahrain",     session_type: "R"}
+  - {year: 2023, race: "Monaco",      session_type: "R"}
+  - {year: 2023, race: "Silverstone", session_type: "R"}
+  - {year: 2023, race: "Monza",       session_type: "R"}
+  - {year: 2023, race: "Singapore",   session_type: "R"}
+  - {year: 2023, race: "Suzuka",      session_type: "R"}
+  - {year: 2024, race: "Bahrain",     session_type: "R"}
+  - {year: 2024, race: "Monaco",      session_type: "R"}
+  - {year: 2024, race: "Silverstone", session_type: "R"}
+  - {year: 2024, race: "Monza",       session_type: "R"}
+  - {year: 2024, race: "Singapore",   session_type: "R"}
+  - {year: 2024, race: "Suzuka",      session_type: "R"}
 
 drivers:
   - "VER"                  # Verstappen

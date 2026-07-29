@@ -28,7 +28,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.metrics import accuracy_score
 
 
@@ -45,43 +45,60 @@ def load_config(config_path: str = "config.yaml") -> dict:
 # Dataset
 # ─────────────────────────────────────────────
 
-TELEMETRY_CHANNELS = ["Throttle", "Brake", "Speed", "nGear", "RPM"]
+RAW_TELEMETRY_CHANNELS = ["Throttle", "Brake", "Speed", "nGear", "RPM"]
+# RPM excluded: it's ~fixed by the power unit (car/team), not driving style,
+# and including it inflates cross-circuit accuracy from car fingerprinting
+# rather than genuine driver-style generalization. See README limitations.
+TELEMETRY_CHANNELS = ["Throttle", "Brake", "Speed", "nGear"]
 SEQ_LEN = 750  # pad/truncate all laps to this length
 
 
-def load_raw_telemetry(processed_dir: str, race_tag: str, drivers: list) -> pd.DataFrame:
+def load_raw_telemetry(processed_dir: str, races: list, drivers: list) -> pd.DataFrame:
+    """Load and concatenate telemetry across every configured race."""
     dfs = []
-    for driver in drivers:
-        path = os.path.join(processed_dir, race_tag, f"{driver}.parquet")
-        df = pd.read_parquet(path)
-        dfs.append(df)
+    for race_cfg in races:
+        race_tag = f"{race_cfg['year']}_{race_cfg['race'].lower()}"
+        for driver in drivers:
+            path = os.path.join(processed_dir, race_tag, f"{driver}.parquet")
+            if not os.path.exists(path):
+                print(f"  [warn] Missing {path}, skipping")
+                continue
+            df = pd.read_parquet(path)
+            dfs.append(df)
     return pd.concat(dfs, ignore_index=True)
 
 
 def build_sequences(df: pd.DataFrame, seq_len: int) -> tuple:
     """
-    For each (Driver, LapNumber) group, extract the telemetry channels,
+    For each (Driver, Race, LapNumber) group, extract the telemetry channels,
     normalize each channel to [0, 1], and pad/truncate to seq_len.
 
     Returns:
         sequences: np.array of shape (n_laps, n_channels, seq_len)
         labels:    list of driver strings, one per lap
-        lap_meta:  list of (driver, lap_number) tuples
+        lap_meta:  list of (driver, race_id, lap_number) tuples
     """
     sequences = []
     labels    = []
     lap_meta  = []
 
-    # Per-channel min/max for normalization (computed across all drivers)
+    has_race = "Race" in df.columns and "Season" in df.columns
+    group_cols = ["Driver", "Season", "Race", "LapNumber"] if has_race else ["Driver", "LapNumber"]
+
+    # Per-channel min/max for normalization (computed across all drivers/races)
     channel_stats = {}
     for ch in TELEMETRY_CHANNELS:
         if ch in df.columns:
             ch_vals = df[ch].astype(float)
             channel_stats[ch] = (ch_vals.min(), ch_vals.max())
 
-    for (driver, lap_num), lap_df in df.groupby(["Driver", "LapNumber"]):
+    for group_key, lap_df in df.groupby(group_cols):
         if len(lap_df) < 50:
             continue
+
+        vals = dict(zip(group_cols, group_key if isinstance(group_key, tuple) else (group_key,)))
+        driver = vals["Driver"]
+        race_id = f"{vals['Season']}_{vals['Race']}" if has_race else "unknown"
 
         channels = []
         for ch in TELEMETRY_CHANNELS:
@@ -107,10 +124,10 @@ def build_sequences(df: pd.DataFrame, seq_len: int) -> tuple:
         seq = np.stack(channels, axis=0)  # (n_channels, seq_len)
         sequences.append(seq)
         labels.append(driver)
-        lap_meta.append((driver, lap_num))
+        lap_meta.append((driver, race_id, vals["LapNumber"]))
 
     sequences = np.array(sequences, dtype=np.float32)
-    print(f"[sequences] Shape: {sequences.shape}  |  Labels: {len(labels)}")
+    print(f"[sequences] Shape: {sequences.shape}  |  Labels: {len(labels)}  |  Races: {len(set(m[1] for m in lap_meta))}")
     return sequences, labels, lap_meta
 
 
@@ -222,8 +239,9 @@ def evaluate(model, loader, criterion, device):
 def main():
     config = load_config()
 
-    race_tag     = f"{config['session']['year']}_{config['session']['race'].lower()}"
+    race_tag      = "all_races"
     processed_dir = config["data"]["processed_dir"]
+    races         = config["races"]
     drivers       = config["drivers"]
     embedding_dim = config["model"]["embedding_dim"]
     seed          = config["model"]["random_seed"]
@@ -237,22 +255,31 @@ def main():
     print(f"[device] Using: {device}")
 
     # Load and prepare data
-    print("\n[data] Loading telemetry...")
-    df = load_raw_telemetry(processed_dir, race_tag, drivers)
+    print("\n[data] Loading telemetry across all configured races...")
+    df = load_raw_telemetry(processed_dir, races, drivers)
     sequences, labels_str, lap_meta = build_sequences(df, SEQ_LEN)
 
     le = LabelEncoder()
     labels = le.fit_transform(labels_str)
     n_classes  = len(le.classes_)
     n_channels = sequences.shape[1]
+    race_ids   = np.array([m[1] for m in lap_meta])
 
     print(f"[data] Classes: {list(le.classes_)}  |  n_channels: {n_channels}  |  seq_len: {SEQ_LEN}")
 
-    # Train/val split — stratified by driver
+    # Train/val split — held out by RACE (group split), not random.
+    # This tests whether embeddings generalize to unseen circuits rather
+    # than just memorizing this-track patterns.
     idx = np.arange(len(sequences))
-    train_idx, val_idx = train_test_split(
-        idx, test_size=0.2, stratify=labels, random_state=seed
-    )
+    n_races = len(set(race_ids))
+    if n_races >= 5:
+        gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=seed)
+        train_idx, val_idx = next(gss.split(idx, labels, groups=race_ids))
+        print(f"[split] Group split by race — held-out races: {sorted(set(race_ids[val_idx]))}")
+    else:
+        train_idx, val_idx = train_test_split(
+            idx, test_size=0.2, stratify=labels, random_state=seed
+        )
 
     train_ds = TelemetryDataset(sequences[train_idx], labels[train_idx])
     val_ds   = TelemetryDataset(sequences[val_idx],   labels[val_idx])
@@ -349,7 +376,8 @@ def main():
     # Save embeddings with metadata
     embed_df = pd.DataFrame(embeddings, columns=[f"dim_{i}" for i in range(embedding_dim)])
     embed_df["Driver"]    = labels_str
-    embed_df["LapNumber"] = [m[1] for m in lap_meta]
+    embed_df["Race"]      = [m[1] for m in lap_meta]
+    embed_df["LapNumber"] = [m[2] for m in lap_meta]
     embed_path = os.path.join(features_dir, f"{race_tag}_embeddings.csv")
     embed_df.to_csv(embed_path, index=False)
     print(f"[saved] Embeddings → {embed_path}")

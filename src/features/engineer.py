@@ -21,13 +21,18 @@ def load_config(config_path: str = "config.yaml") -> dict:
 
 
 def load_driver_data(processed_dir: str, race_tag: str, drivers: list[str]) -> pd.DataFrame:
-    """Load all driver parquet files and concatenate into one DataFrame."""
+    """Load all driver parquet files for one race and concatenate into one DataFrame."""
     dfs = []
     for driver in drivers:
         path = os.path.join(processed_dir, race_tag, f"{driver}.parquet")
+        if not os.path.exists(path):
+            print(f"  [warn] Missing {path}, skipping")
+            continue
         df = pd.read_parquet(path)
         dfs.append(df)
         print(f"  [loaded] {driver}: {df.shape[0]} rows, {df['LapNumber'].nunique()} laps")
+    if not dfs:
+        return pd.DataFrame()
     return pd.concat(dfs, ignore_index=True)
 
 
@@ -143,16 +148,24 @@ def extract_lap_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     rows = []
 
-    for (driver, lap_num), lap_df in df.groupby(["Driver", "LapNumber"]):
+    group_cols = ["Driver", "Race", "LapNumber"] if "Race" in df.columns else ["Driver", "LapNumber"]
+
+    for group_key, lap_df in df.groupby(group_cols):
         # Skip very short laps (in/out laps can have <50 samples)
         if len(lap_df) < 50:
             continue
 
+        group_vals = dict(zip(group_cols, group_key if isinstance(group_key, tuple) else (group_key,)))
+
         row = {
-            "Driver":    driver,
-            "LapNumber": lap_num,
+            "Driver":    group_vals["Driver"],
+            "LapNumber": group_vals["LapNumber"],
             "LapTime_s": lap_df["LapTime_s"].iloc[0],
         }
+        if "Race" in df.columns:
+            row["Race"] = group_vals["Race"]
+        if "Season" in lap_df.columns:
+            row["Season"] = lap_df["Season"].iloc[0]
 
         for feat_name, feat_fn in FEATURE_FUNCTIONS.items():
             try:
@@ -180,31 +193,46 @@ def save_features(df: pd.DataFrame, features_dir: str, race_tag: str):
 def main():
     config = load_config()
 
-    race_tag = f"{config['session']['year']}_{config['session']['race'].lower()}"
     processed_dir = config["data"]["processed_dir"]
     features_dir  = config["data"]["features_dir"]
     drivers       = config["drivers"]
 
-    print("[load] Reading parquet files...")
-    df = load_driver_data(processed_dir, race_tag, drivers)
+    all_features = []
 
-    print("\n[engineer] Extracting lap features...")
-    features_df = extract_lap_features(df)
+    for race_cfg in config["races"]:
+        race_tag = f"{race_cfg['year']}_{race_cfg['race'].lower()}"
+        print(f"\n{'='*60}\n[race] {race_tag}\n{'='*60}")
+
+        print("[load] Reading parquet files...")
+        df = load_driver_data(processed_dir, race_tag, drivers)
+        if df.empty:
+            print(f"  [warn] No data for {race_tag}, skipping")
+            continue
+
+        print("[engineer] Extracting lap features...")
+        features_df = extract_lap_features(df)
+        all_features.append(features_df)
+
+    combined_df = pd.concat(all_features, ignore_index=True)
 
     # Drop laps with too many NaN features
-    before = len(features_df)
-    features_df = features_df.dropna(thresh=len(FEATURE_FUNCTIONS) - 2)
-    print(f"[clean] Dropped {before - len(features_df)} laps with excess NaNs. Remaining: {len(features_df)}")
+    before = len(combined_df)
+    combined_df = combined_df.dropna(thresh=len(FEATURE_FUNCTIONS) - 2)
+    print(f"\n[clean] Dropped {before - len(combined_df)} laps with excess NaNs. Remaining: {len(combined_df)}")
 
-    save_features(features_df, features_dir, race_tag)
+    save_features(combined_df, features_dir, "all_races")
 
     # Quick summary
-    print("\n── Per-driver lap counts ──")
-    print(features_df.groupby("Driver")["LapNumber"].count())
+    print("\n── Per-driver lap counts (all races) ──")
+    print(combined_df.groupby("Driver")["LapNumber"].count())
+
+    print("\n── Laps per race ──")
+    if "Race" in combined_df.columns:
+        print(combined_df.groupby(["Season", "Race"])["LapNumber"].count())
 
     print("\n── Feature means by driver ──")
     feat_cols = list(FEATURE_FUNCTIONS.keys())
-    print(features_df.groupby("Driver")[feat_cols].mean().round(4).to_string())
+    print(combined_df.groupby("Driver")[feat_cols].mean().round(4).to_string())
 
 
 if __name__ == "__main__":

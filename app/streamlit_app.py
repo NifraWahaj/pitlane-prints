@@ -222,7 +222,7 @@ def load_all_data():
     with open(os.path.join(ROOT, "config.yaml")) as f:
         config = yaml.safe_load(f)
 
-    race_tag      = f"{config['session']['year']}_{config['session']['race'].lower()}"
+    race_tag      = "all_races"
     features_dir  = os.path.join(ROOT, config["data"]["features_dir"])
     processed_dir = os.path.join(ROOT, config["data"]["processed_dir"])
     models_dir    = os.path.join(ROOT, "outputs", "models")
@@ -234,9 +234,14 @@ def load_all_data():
     xgb_model   = joblib.load(os.path.join(models_dir,   f"{race_tag}_xgb_baseline.pkl"))
     xgb_le      = joblib.load(os.path.join(models_dir,   f"{race_tag}_label_encoder.pkl"))
 
+    # Raw Telemetry Explorer shows one race at a time — default to the most
+    # recent configured race (Season/Race combo must be unique per lap here).
+    explorer_race = config["races"][-1]
+    explorer_tag  = f"{explorer_race['year']}_{explorer_race['race'].lower()}"
+
     raw = {}
     for driver in config["drivers"]:
-        path = os.path.join(processed_dir, race_tag, f"{driver}.parquet")
+        path = os.path.join(processed_dir, explorer_tag, f"{driver}.parquet")
         try:
             raw[driver] = pd.read_parquet(path)
         except FileNotFoundError:
@@ -407,7 +412,9 @@ with st.sidebar:
     text-transform:uppercase;color:#e10600;margin-bottom:1.5rem;'>Driver Style Fingerprinting</div>
     """, unsafe_allow_html=True)
 
-    st.caption(f"📍 {config['session']['year']} {config['session']['race']} Grand Prix")
+    _races = config["races"]
+    _seasons = sorted({r["year"] for r in _races})
+    st.caption(f"📍 {len(_races)} races · {_seasons[0]}–{_seasons[-1]}")
 
     st.markdown("---")
     st.markdown("**Radar — drivers to compare**")
@@ -454,7 +461,7 @@ with st.sidebar:
 st.markdown(f"""
 <div class='hero'>
   <div class='hero-title'>F1 Telemetry Lens</div>
-  <div class='hero-sub'>{config['session']['year']} {config['session']['race']} Grand Prix · Driver Style Analysis</div>
+  <div class='hero-sub'>{len(config["races"])} Races · {sorted({r["year"] for r in config["races"]})[0]}–{sorted({r["year"] for r in config["races"]})[-1]} · Driver Style Analysis</div>
   <div class='hero-desc'>
     Can a machine learn to recognise a driver's identity purely from how they use the throttle,
     brake, and gear? This pipeline learns a style fingerprint for each driver — no lap times,
@@ -467,10 +474,10 @@ st.markdown(f"""
 # Stat strip
 # ─────────────────────────────────────────────
 stat_items = [
-    ("#e10600", "XGBoost OOF", "93.7%", "5-fold cross-val"),
-    ("#22c55e", "CNN Val Acc", "100%",  "epoch 16 · 40k params"),
-    ("#a78bfa", "Silhouette",  "0.84",  "32-dim embeddings"),
-    ("#facc15", "Drivers",     str(len(all_drivers)), "2023 Bahrain GP"),
+    ("#e10600", "XGBoost In-Track", "84.4%", "5-fold stratified OOF"),
+    ("#f97316", "XGBoost Cross-Track", "61.2%", "GroupKFold, held-out circuits"),
+    ("#a78bfa", "Silhouette",  "0.51",  "32-dim embeddings, cross-circuit"),
+    ("#facc15", "Races",       str(len(config["races"])), "2023–2024, 6 circuits"),
     ("#3b82f6", "Laps",        str(len(features_df)), "after quality filter"),
 ]
 cols = st.columns(len(stat_items))
@@ -512,8 +519,9 @@ with col_u:
     st.markdown("""<div class='chart-caption'>
     Each dot = one lap. The 1D-CNN learned these positions from raw telemetry sequences alone —
     no hand-crafted features. Tight, separated clusters mean the model learned a genuine
-    fingerprint per driver. <b>Silhouette: 0.84</b> (>0.5 = strong). VER's inter/intra
-    distance ratio is 8.3× — his laps are 8× closer to each other than to any other driver.
+    fingerprint per driver, even across circuits it never trained on. <b>Silhouette: 0.51</b>
+    (cross-circuit, >0.5 = strong). ALO's inter/intra distance ratio is 3.3× — his laps
+    cluster tighter across all 12 races than a lap picked at random from another driver.
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
@@ -534,8 +542,9 @@ with bcol_btn:
     if st.button("🎲  Pick random lap", use_container_width=True, type="primary"):
         st.session_state["blind_lap"] = features_df.sample(1).iloc[0]
     st.markdown("""<div style='font-size:0.75rem;color:#3a3a5a;margin-top:0.75rem;line-height:1.6;'>
-    93.7% of the time the model is correct. When it fails it almost always confuses
-    ALO ↔ HAM — the two drivers whose style profiles overlap most.
+    84.4% of the time the model is correct on a lap from a track it has seen before;
+    that drops to 61.2% on a held-out circuit. HAM and LEC are hardest to tell apart —
+    their trail-braking-heavy styles overlap most.
     </div>""", unsafe_allow_html=True)
 
 if "blind_lap" in st.session_state:
@@ -646,17 +655,18 @@ with col_fi:
     st.plotly_chart(make_feature_importance(fi_df), use_container_width=True)
     st.markdown("""<div class='chart-caption'>
     Longer bar = the model relied on this feature more across all CV folds.
-    <b>mean_corner_speed</b> dominates because VER's car created a ~9 km/h corner speed gap
-    no other feature can explain. <b>gear_change_freq</b> and <b>coasting_ratio</b> are the
-    most driver-specific — reflecting genuine style choices independent of car performance.
+    <b>throttle_brake_overlap</b> (trail braking) and <b>gear_change_freq</b> dominate — these
+    are largely car-independent, reflecting how a driver rotates the car through corners rather
+    than raw car performance. <b>mean_corner_speed</b> still ranks high but is the feature most
+    likely to carry car/aero signal alongside driving style.
     </div>""", unsafe_allow_html=True)
 
 with col_tc:
     st.markdown("<div class='section-header'>CNN Training Curve</div>", unsafe_allow_html=True)
     st.plotly_chart(make_training_curve(history_df), use_container_width=True)
     st.markdown("""<div class='chart-caption'>
-    Blue = train accuracy, red dashed = validation accuracy on unseen laps. A large gap would
-    indicate overfitting — the curves track closely here. Val hit 100% at epoch 16; early
-    stopping triggered at epoch 31. The XGBoost 5-fold OOF score of <b>93.7%</b> is the more
-    conservative generalisation estimate.
+    Blue = train accuracy, red dashed = validation accuracy — but here validation laps come
+    from <b>entirely held-out circuits</b>, not just unseen laps. Val hit 94.2% before early
+    stopping. That's still higher than XGBoost's 61.2% cross-circuit score, suggesting the raw
+    telemetry channels (Speed, nGear) retain some car-specific signal the CNN can exploit.
     </div>""", unsafe_allow_html=True)

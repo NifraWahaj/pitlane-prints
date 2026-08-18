@@ -26,26 +26,27 @@ The result is a live Streamlit dashboard where you can explore driver style prof
 ---
 ## Dashboard
 
-### Overview Dashboard
-Driver style fingerprints, learned embedding space (UMAP), and key model metrics.
+The Streamlit app is organised into four tabs. Every headline number in the app is **computed at load time from the saved pipeline artefacts** rather than hardcoded, so the UI can never drift out of sync with a re-run of the models.
+
+> Screenshots below predate the current interface and are pending an update.
+
+### Fingerprints
+The nine hand-crafted style metrics as a per-driver radar, beside the 1D-CNN's own 32-dimensional embedding of every individual lap projected to 2D with UMAP. Overlapping radar polygons correspond directly to the driver pairs the classifier confuses most.
 
 ![Dashboard Overview](outputs/figures/screenshot_dashboard_01.png)
 
-### Blind Identification Challenge
-Select a random lap and see whether the model correctly identifies the driver — using a genuine **out-of-fold** prediction (the model never saw this lap during the fold that scored it), with a toggle between within-track and cross-circuit evaluation. A "Verify it yourself" panel shows the exact feature values fed to the model and the raw telemetry trace, so the result isn't just take-our-word-for-it.
+### Blind test
+Draw a lap at random and see whether the classifier gets it — using a genuine **out-of-fold** prediction recorded during cross-validation, so the model that scored the lap never saw it in training. A split toggle switches between same-circuit and held-out-circuit evaluation, and an audit panel exposes the exact nine feature values fed to the model alongside the raw telemetry trace for that lap.
 
 ![Blind Identification](outputs/figures/screenshot_dashboard_02.png)
 
-### Raw Telemetry Explorer
-Inspect throttle, brake, speed, and gear traces for any driver, race, and lap.
+### Telemetry & audio
+Throttle, brake, speed and gear traces for any driver, race and lap, with an optional second driver overlaid on the same axes to show where two styles diverge. The same selection drives the **sonifier**: RPM becomes pitch, throttle becomes loudness, and every braking zone lands as a percussive hit — generate both drivers and play them back to back to hear a smooth trail-braker against a late stabber.
 
 ![Telemetry Explorer](outputs/figures/screenshot_dashboard_03.png)
 
-### Sonified Lap
-Turn a lap into ~10 seconds of sound instead of a chart: RPM drives pitch, throttle drives volume, and every braking zone lands as an audible thump. Play the same lap for two drivers back to back and the style difference — smooth vs. stab-the-brakes — is audible, not just visible.
-
-### Model Analysis
-Feature importance rankings and CNN training performance.
+### Model
+Feature importances, the CNN training curve validated on held-out circuits, a side-by-side explanation of the two cross-validation schemes and the generalisation gap between them, the known limitations (including the RPM leak described below), and a silhouette comparison of the cross-entropy and contrastive encoders.
 
 ![Model Analysis](outputs/figures/screenshot_dashboard_04.png)
 

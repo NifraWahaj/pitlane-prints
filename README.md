@@ -26,27 +26,25 @@ The result is a live Streamlit dashboard where you can explore driver style prof
 ---
 ## Dashboard
 
-The Streamlit app is organised into four tabs. Every headline number in the app is **computed at load time from the saved pipeline artefacts** rather than hardcoded, so the UI can never drift out of sync with a re-run of the models.
-
-> Screenshots below predate the current interface and are pending an update.
+The Streamlit app is organised into four tabs, with no sidebar — every control sits directly above the chart it drives. Every headline number in the app is **computed at load time from the saved pipeline artefacts** rather than hardcoded, so the UI can never drift out of sync with a re-run of the models.
 
 ### Fingerprints
-The nine hand-crafted style metrics as a per-driver radar, beside the 1D-CNN's own 32-dimensional embedding of every individual lap projected to 2D with UMAP. Overlapping radar polygons correspond directly to the driver pairs the classifier confuses most.
+The nine hand-crafted style metrics as a per-driver radar, beside the 1D-CNN's own 32-dimensional embedding of every individual lap projected to 2D with UMAP. Overlapping radar polygons correspond directly to the driver pairs the classifier confuses most — here VER, LEC and NOR form three visibly distinct clusters in the embedding space on the right, isolated from all-driver view.
 
 ![Dashboard Overview](outputs/figures/screenshot_dashboard_01.png)
 
 ### Blind test
-Draw a lap at random and see whether the classifier gets it — using a genuine **out-of-fold** prediction recorded during cross-validation, so the model that scored the lap never saw it in training. A split toggle switches between same-circuit and held-out-circuit evaluation, and an audit panel exposes the exact nine feature values fed to the model alongside the raw telemetry trace for that lap.
+Draw a lap at random and see whether the classifier gets it — using a genuine **out-of-fold** prediction recorded during cross-validation, so the model that scored the lap never saw it in training. A split toggle switches between same-circuit and held-out-circuit evaluation; shown here, a same-circuit draw correctly identifies Sainz at 69.7% confidence. An audit panel exposes the exact nine feature values fed to the model alongside the raw telemetry trace for that lap.
 
 ![Blind Identification](outputs/figures/screenshot_dashboard_02.png)
 
 ### Telemetry & audio
-Throttle, brake, speed and gear traces for any driver, race and lap, with an optional second driver overlaid on the same axes to show where two styles diverge. The same selection drives the **sonifier**: RPM becomes pitch, throttle becomes loudness, and every braking zone lands as a percussive hit — generate both drivers and play them back to back to hear a smooth trail-braker against a late stabber.
+Throttle, brake, speed and gear traces for any driver, race and lap, with an optional second driver overlaid on the same axes to show where two styles diverge — here Verstappen and Leclerc at Suzuka, whose throttle traces separate visibly under braking into the chicane. The same selection drives the **sonifier** below it: RPM becomes pitch, throttle becomes loudness, and every braking zone lands as a percussive hit — generate both drivers and play them back to back to hear a smooth trail-braker against a late stabber.
 
 ![Telemetry Explorer](outputs/figures/screenshot_dashboard_03.png)
 
 ### Model
-Feature importances, the CNN training curve validated on held-out circuits, a side-by-side explanation of the two cross-validation schemes and the generalisation gap between them, the known limitations (including the RPM leak described below), and a silhouette comparison of the cross-entropy and contrastive encoders.
+Feature importances, the CNN training curve validated on held-out circuits, and a side-by-side explanation of the two cross-validation schemes and the generalisation gap between them. Further down (not pictured) are the known limitations — including the RPM leak described below — and a silhouette comparison of the cross-entropy and contrastive encoders.
 
 ![Model Analysis](outputs/figures/screenshot_dashboard_04.png)
 

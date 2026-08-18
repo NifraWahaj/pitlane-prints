@@ -9,200 +9,40 @@ Run from project root:
 
 import os
 import sys
-import yaml
+
 import joblib
 import numpy as np
 import pandas as pd
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
+import yaml
 from plotly.subplots import make_subplots
+from scipy.signal import sawtooth
+from sklearn.metrics import silhouette_score
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 st.set_page_config(
     page_title="F1 Telemetry Lens",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ─────────────────────────────────────────────
-# CSS
+# Design tokens
 # ─────────────────────────────────────────────
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Inter:wght@300;400;500&display=swap');
+BG        = "#08080d"
+SURFACE   = "#101017"
+SURFACE_2 = "#15151e"
+BORDER    = "#23232f"
+TEXT      = "#e8e8f2"
+TEXT_DIM  = "#8b8ba6"
+TEXT_MUTE = "#5a5a72"
+ACCENT    = "#e10600"
 
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-
-.stApp { background-color: #ffffff; color: #1a1a2e; }
-
-[data-testid="stSidebar"] {
-    background-color: #f8f9fc !important;
-    border-right: 1px solid #e6e6ef;
-}
-[data-testid="stSidebar"] * { font-size: 0.875rem; }
-
-#MainMenu, footer, header { visibility: hidden; }
-.block-container { padding-top: 2rem !important; padding-bottom: 3rem !important; max-width: 1400px; }
-
-/* ── Hero header ── */
-.hero { margin-bottom: 2.5rem; }
-.hero-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800;
-    font-size: 2.75rem;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    color: #14141f;
-    margin: 0;
-}
-.hero-sub {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 0.8rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #e10600;
-    margin-top: 6px;
-}
-.hero-desc {
-    font-size: 0.9rem;
-    color: #5a5f78;
-    margin-top: 10px;
-    max-width: 680px;
-    line-height: 1.6;
-}
-
-/* ── Stat strip ── */
-.stat-strip {
-    display: flex;
-    gap: 1px;
-    background: #e6e6ef;
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 2.5rem;
-}
-.stat-item {
-    flex: 1;
-    background: #fbfbfe;
-    padding: 1rem 1.25rem;
-    min-width: 0;
-}
-.stat-label {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 0.65rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #6b7280;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.stat-value {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-}
-.stat-note {
-    font-size: 0.7rem;
-    color: #8a8fa3;
-    margin-top: 3px;
-}
-
-/* ── Section ── */
-.section-header {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 0.7rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: #6b7280;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #e6e6ef;
-    margin-bottom: 1rem;
-}
-
-/* ── Chart card ── */
-.chart-card {
-    background: #fbfbfe;
-    border: 1px solid #e6e6ef;
-    border-radius: 8px;
-    padding: 1.25rem 1.25rem 0.75rem;
-    height: 100%;
-    box-shadow: 0 1px 2px rgba(20,20,31,0.03);
-}
-
-/* ── Caption ── */
-.chart-caption {
-    font-size: 0.78rem;
-    color: #6b7280;
-    line-height: 1.55;
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid #e6e6ef;
-}
-.chart-caption b { color: #33374a; }
-
-/* ── Blind ID panel ── */
-.blind-panel {
-    background: #fbfbfe;
-    border: 1px solid #e6e6ef;
-    border-radius: 8px;
-    padding: 1.25rem;
-}
-.blind-driver-name {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 2.75rem;
-    font-weight: 800;
-    line-height: 1;
-}
-.blind-driver-full {
-    font-size: 0.8rem;
-    color: #6b7280;
-    margin-top: 2px;
-    margin-bottom: 1rem;
-}
-.prob-row { margin-bottom: 7px; }
-.prob-label {
-    display: flex;
-    justify-content: space-between;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 0.82rem;
-    margin-bottom: 3px;
-}
-.prob-track { background: #eceef4; border-radius: 2px; height: 4px; }
-.verdict {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    margin-top: 1rem;
-}
-
-/* ── Verify table ── */
-.verify-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-.verify-table td { padding: 4px 8px; border-bottom: 1px solid #eceef4; }
-.verify-table td:first-child { color: #6b7280; }
-.verify-table td:last-child { text-align: right; font-weight: 600; color: #14141f; }
-
-/* ── Divider ── */
-.spacer { height: 2rem; }
-
-/* ── Buttons ── */
-.stButton > button {
-    border-radius: 6px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────
-# Constants
-# ─────────────────────────────────────────────
 DRIVER_COLORS = {
     "VER": "#3b82f6", "HAM": "#a78bfa", "ALO": "#f87171",
-    "LEC": "#f97316", "SAI": "#ca8a04", "NOR": "#16a34a",
+    "LEC": "#f97316", "SAI": "#facc15", "NOR": "#34d399",
 }
 DRIVER_NAMES = {
     "VER": "Max Verstappen", "HAM": "Lewis Hamilton", "ALO": "Fernando Alonso",
@@ -219,526 +59,1048 @@ FEATURE_LABELS = [
 ]
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FONT = "Inter"
 
-PLOT_BG   = "#ffffff"
-PAPER_BG  = "#ffffff"
-GRID_COL  = "#eceef4"
-TEXT_COL  = "#1a1a2e"
-FONT      = "Inter"
+# ─────────────────────────────────────────────
+# CSS
+# ─────────────────────────────────────────────
+st.markdown(f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}
+.stApp {{ background-color: {BG}; color: {TEXT}; }}
+
+#MainMenu, footer, header {{ visibility: hidden; }}
+[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] {{ display: none !important; }}
+.block-container {{
+    padding-top: 2.25rem !important;
+    padding-bottom: 4rem !important;
+    max-width: 1320px;
+}}
+
+/* ── Masthead ── */
+.masthead {{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid {BORDER};
+    margin-bottom: 0.35rem;
+}}
+.mast-title {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 2.6rem;
+    letter-spacing: -0.015em;
+    line-height: 0.95;
+    color: {TEXT};
+    margin: 0;
+}}
+.mast-title span {{ color: {ACCENT}; }}
+.mast-tag {{
+    font-size: 0.86rem;
+    color: {TEXT_DIM};
+    margin-top: 9px;
+    max-width: 640px;
+    line-height: 1.6;
+}}
+.mast-meta {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: {TEXT_MUTE};
+    text-align: right;
+    line-height: 2;
+    white-space: nowrap;
+}}
+.mast-meta b {{ color: {TEXT_DIM}; font-weight: 600; }}
+
+/* ── Metric cards ── */
+.metric {{
+    background: {SURFACE};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 0.95rem 1.05rem;
+    height: 100%;
+}}
+.metric-label {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.66rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: {TEXT_MUTE};
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}}
+.metric-value {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.85rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.01em;
+}}
+.metric-note {{
+    font-size: 0.7rem;
+    color: {TEXT_MUTE};
+    margin-top: 5px;
+    line-height: 1.4;
+}}
+
+/* ── Tabs ── */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {{
+    gap: 0;
+    border-bottom: 1px solid {BORDER};
+    margin-bottom: 1.6rem;
+}}
+[data-testid="stTabs"] [data-baseweb="tab"] {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: {TEXT_MUTE};
+    background: transparent;
+    padding: 0.75rem 1.4rem;
+    border-radius: 0;
+}}
+[data-testid="stTabs"] [aria-selected="true"] {{ color: {TEXT} !important; }}
+[data-testid="stTabs"] [data-baseweb="tab-highlight"] {{ background-color: {ACCENT}; height: 2px; }}
+[data-testid="stTabs"] [data-baseweb="tab-border"] {{ display: none; }}
+
+/* ── Panel ── */
+.panel {{
+    background: {SURFACE};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 1.15rem 1.25rem;
+}}
+.panel-flush {{
+    background: {SURFACE};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 0.4rem 0.6rem 0.1rem;
+}}
+
+/* ── Section label ── */
+.slabel {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: {TEXT_DIM};
+    margin-bottom: 0.7rem;
+}}
+.intro {{
+    font-size: 0.85rem;
+    color: {TEXT_DIM};
+    line-height: 1.65;
+    max-width: 900px;
+    margin-bottom: 1.2rem;
+}}
+.intro b {{ color: {TEXT}; font-weight: 600; }}
+.note {{
+    font-size: 0.78rem;
+    color: {TEXT_MUTE};
+    line-height: 1.6;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid {BORDER};
+}}
+.note b {{ color: {TEXT_DIM}; font-weight: 600; }}
+
+/* ── Verdict card ── */
+.vcard {{
+    background: {SURFACE};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 1.15rem 1.25rem;
+}}
+.vcard-kicker {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.64rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: {TEXT_MUTE};
+}}
+.vcard-code {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 3.1rem;
+    font-weight: 800;
+    line-height: 1;
+    margin: 6px 0 3px;
+}}
+.vcard-name {{ font-size: 0.82rem; color: {TEXT_DIM}; }}
+.verdict {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 1.1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid {BORDER};
+}}
+.verdict-sub {{ font-size: 0.75rem; color: {TEXT_MUTE}; margin-top: 4px; letter-spacing: 0; }}
+
+/* ── Probability bars ── */
+.pbar-row {{ margin-bottom: 0.7rem; }}
+.pbar-head {{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}}
+.pbar-track {{ background: {SURFACE_2}; border-radius: 3px; height: 6px; overflow: hidden; }}
+.pbar-fill {{ height: 6px; border-radius: 3px; }}
+
+/* ── Key/value table ── */
+.kv {{ width: 100%; border-collapse: collapse; font-size: 0.79rem; }}
+.kv td {{ padding: 6px 2px; border-bottom: 1px solid {BORDER}; }}
+.kv td:first-child {{ color: {TEXT_MUTE}; }}
+.kv td:last-child {{
+    text-align: right;
+    font-weight: 600;
+    color: {TEXT};
+    font-variant-numeric: tabular-nums;
+}}
+
+/* ── Empty state ── */
+.empty {{
+    background: {SURFACE};
+    border: 1px dashed {BORDER};
+    border-radius: 10px;
+    padding: 1.6rem;
+    font-size: 0.83rem;
+    color: {TEXT_MUTE};
+    line-height: 1.6;
+}}
+
+/* ── Streamlit widget polish ── */
+.stButton > button {{
+    border-radius: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid {BORDER};
+}}
+[data-testid="stExpander"] details {{
+    background: {SURFACE};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+}}
+[data-testid="stExpander"] summary {{ font-size: 0.84rem; }}
+div[role="radiogroup"] label {{ font-size: 0.83rem; }}
+.stSelectbox label, .stMultiSelect label {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: {TEXT_MUTE} !important;
+}}
+hr {{ border-color: {BORDER}; margin: 1.8rem 0; }}
+</style>
+""", unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
 # Data loading
 # ─────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(show_spinner="Loading telemetry and models...")
 def load_all_data():
     with open(os.path.join(ROOT, "config.yaml")) as f:
         config = yaml.safe_load(f)
 
-    race_tag      = "all_races"
+    tag           = "all_races"
     features_dir  = os.path.join(ROOT, config["data"]["features_dir"])
     processed_dir = os.path.join(ROOT, config["data"]["processed_dir"])
     models_dir    = os.path.join(ROOT, "outputs", "models")
 
-    features_df = pd.read_csv(os.path.join(features_dir, f"{race_tag}_features.csv"))
-    umap_df     = pd.read_csv(os.path.join(features_dir, f"{race_tag}_umap_coords.csv"))
-    history_df  = pd.read_csv(os.path.join(features_dir, f"{race_tag}_cnn_history.csv"))
-    fi_df       = pd.read_csv(os.path.join(features_dir, f"{race_tag}_feature_importance.csv"))
-    xgb_model   = joblib.load(os.path.join(models_dir,   f"{race_tag}_xgb_baseline.pkl"))
-    xgb_le      = joblib.load(os.path.join(models_dir,   f"{race_tag}_label_encoder.pkl"))
+    def opt_csv(name):
+        path = os.path.join(features_dir, name)
+        return pd.read_csv(path) if os.path.exists(path) else None
 
-    oof_path = os.path.join(features_dir, f"{race_tag}_oof_predictions.csv")
-    oof_df = pd.read_csv(oof_path) if os.path.exists(oof_path) else None
+    bundle = dict(
+        config      = config,
+        features_df = pd.read_csv(os.path.join(features_dir, f"{tag}_features.csv")),
+        umap_df     = pd.read_csv(os.path.join(features_dir, f"{tag}_umap_coords.csv")),
+        history_df  = pd.read_csv(os.path.join(features_dir, f"{tag}_cnn_history.csv")),
+        fi_df       = pd.read_csv(os.path.join(features_dir, f"{tag}_feature_importance.csv")),
+        xgb_le      = joblib.load(os.path.join(models_dir, f"{tag}_label_encoder.pkl")),
+        oof_df      = opt_csv(f"{tag}_oof_predictions.csv"),
+        embed_df    = opt_csv(f"{tag}_embeddings.csv"),
+        contrast_df = opt_csv(f"{tag}_contrastive_embeddings.csv"),
+    )
 
-    # Raw telemetry, keyed by (race_tag, driver) — loaded for every configured
-    # race so the Blind ID Challenge can show the exact lap trace it scored,
-    # and the Telemetry Explorer can browse any race, not just one.
+    # Raw telemetry keyed by race tag then driver. Loaded for every configured
+    # race so the blind test can show the exact lap it scored, and the explorer
+    # can browse any race.
     raw = {}
     for race_cfg in config["races"]:
         rtag = f"{race_cfg['year']}_{race_cfg['race'].lower()}"
         raw[rtag] = {}
         for driver in config["drivers"]:
             path = os.path.join(processed_dir, rtag, f"{driver}.parquet")
-            try:
-                raw[rtag][driver] = pd.read_parquet(path)
-            except FileNotFoundError:
-                raw[rtag][driver] = pd.DataFrame()
+            raw[rtag][driver] = pd.read_parquet(path) if os.path.exists(path) else pd.DataFrame()
+    bundle["raw"] = raw
 
-    return features_df, umap_df, history_df, fi_df, xgb_model, xgb_le, oof_df, raw, config, race_tag
+    return bundle
 
 
-def base_layout(height=None):
-    kwargs = dict(
-        paper_bgcolor=PAPER_BG,
-        plot_bgcolor=PLOT_BG,
-        font=dict(color=TEXT_COL, family=FONT, size=11),
+@st.cache_data(show_spinner=False)
+def compute_headline_metrics(oof_df, embed_df):
+    """
+    Derive the headline numbers from the saved artefacts rather than
+    hardcoding them, so they can never drift out of sync with a re-run
+    of the pipeline.
+    """
+    out = {}
+    if oof_df is not None:
+        truth = oof_df["Driver"]
+        if "oof_pred_intrack" in oof_df.columns:
+            out["intrack"] = float((oof_df["oof_pred_intrack"] == truth).mean())
+        if "oof_pred_crosscircuit" in oof_df.columns:
+            out["cross"] = float((oof_df["oof_pred_crosscircuit"] == truth).mean())
+    if embed_df is not None:
+        dims = [c for c in embed_df.columns if c.startswith("dim_")]
+        if dims:
+            out["silhouette"] = float(silhouette_score(embed_df[dims].values,
+                                                       embed_df["Driver"].values))
+    return out
+
+
+@st.cache_data(show_spinner=False)
+def compute_silhouette(df):
+    if df is None:
+        return None
+    dims = [c for c in df.columns if c.startswith("dim_")]
+    if not dims:
+        return None
+    return float(silhouette_score(df[dims].values, df["Driver"].values, metric="cosine"))
+
+
+# ─────────────────────────────────────────────
+# Plot helpers
+# ─────────────────────────────────────────────
+def base_layout(height=None, legend=True):
+    kw = dict(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=TEXT, family=FONT, size=11),
+        margin=dict(l=8, r=8, t=10, b=8),
     )
     if height:
-        kwargs["height"] = height
-    return kwargs
+        kw["height"] = height
+    if legend:
+        kw["legend"] = dict(bgcolor="rgba(0,0,0,0)", font=dict(size=10),
+                            orientation="h", yanchor="bottom", y=1.0,
+                            xanchor="right", x=1.0)
+    return kw
 
 
-# ─────────────────────────────────────────────
-# Charts
-# ─────────────────────────────────────────────
-def make_radar(features_df, selected_drivers):
-    means      = features_df.groupby("Driver")[FEATURE_COLS].mean()
-    means_norm = (means - means.min()) / (means.max() - means.min() + 1e-8)
+def make_radar(features_df, drivers):
+    means = features_df.groupby("Driver")[FEATURE_COLS].mean()
+    norm  = (means - means.min()) / (means.max() - means.min() + 1e-8)
     fig = go.Figure()
-    for driver in selected_drivers:
-        if driver not in means_norm.index:
+    for d in drivers:
+        if d not in norm.index:
             continue
-        vals = means_norm.loc[driver].tolist()
-        vals += vals[:1]
+        vals = norm.loc[d].tolist()
         fig.add_trace(go.Scatterpolar(
-            r=vals, theta=FEATURE_LABELS + [FEATURE_LABELS[0]],
-            fill="toself", name=DRIVER_NAMES[driver],
-            line=dict(color=DRIVER_COLORS[driver], width=2),
-            fillcolor=DRIVER_COLORS[driver], opacity=0.2,
+            r=vals + vals[:1],
+            theta=FEATURE_LABELS + [FEATURE_LABELS[0]],
+            fill="toself", name=d,
+            line=dict(color=DRIVER_COLORS.get(d, "#888"), width=2),
+            fillcolor=DRIVER_COLORS.get(d, "#888"), opacity=0.14,
+            hovertemplate=f"<b>{d}</b> · %{{theta}}: %{{r:.2f}}<extra></extra>",
         ))
     fig.update_layout(
-        **base_layout(420),
+        **base_layout(430),
         polar=dict(
-            bgcolor=PLOT_BG,
-            radialaxis=dict(visible=True, range=[0, 1], gridcolor=GRID_COL,
-                            tickfont=dict(color="#8a8fa3", size=8), tickvals=[0.25,0.5,0.75,1.0]),
-            angularaxis=dict(gridcolor=GRID_COL, tickfont=dict(color="#9aa0b4", size=10)),
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(range=[0, 1], gridcolor=BORDER, linecolor=BORDER,
+                            tickfont=dict(color=TEXT_MUTE, size=8),
+                            tickvals=[0.25, 0.5, 0.75, 1.0]),
+            angularaxis=dict(gridcolor=BORDER, linecolor=BORDER,
+                             tickfont=dict(color=TEXT_DIM, size=10)),
         ),
-        legend=dict(bgcolor=PLOT_BG, bordercolor="#e6e6ef", borderwidth=1,
-                    font=dict(size=10), orientation="v", x=1.05, y=1)
-                            )
+    )
     return fig
 
 
 def make_umap(umap_df, highlight=None):
     fig = go.Figure()
-    for driver in sorted(umap_df["Driver"].unique()):
-        sub     = umap_df[umap_df["Driver"] == driver]
-        dimmed  = highlight is not None and driver != highlight
-        color   = DRIVER_COLORS.get(driver, "#888")
+    has_race = "Race" in umap_df.columns
+    for d in sorted(umap_df["Driver"].unique()):
+        sub    = umap_df[umap_df["Driver"] == d]
+        dimmed = highlight is not None and d != highlight
+        color  = DRIVER_COLORS.get(d, "#888")
+        if has_race:
+            custom = np.stack([sub["Race"], sub["LapNumber"]], axis=-1)
+            htmpl  = f"<b>{d}</b><br>%{{customdata[0]}} · Lap %{{customdata[1]}}<extra></extra>"
+        else:
+            custom = sub["LapNumber"]
+            htmpl  = f"<b>{d}</b> · Lap %{{customdata}}<extra></extra>"
         fig.add_trace(go.Scatter(
-            x=sub["umap_x"], y=sub["umap_y"], mode="markers",
-            name=DRIVER_NAMES.get(driver, driver),
-            marker=dict(color=color, size=8 if not dimmed else 6,
-                        opacity=0.85 if not dimmed else 0.12,
-                        line=dict(width=0.75, color="#ffffff")),
-            hovertemplate=f"<b>{driver}</b> · Lap %{{customdata}}<extra></extra>",
-            customdata=sub["LapNumber"],
+            x=sub["umap_x"], y=sub["umap_y"], mode="markers", name=d,
+            marker=dict(color=color, size=7 if not dimmed else 5,
+                        opacity=0.8 if not dimmed else 0.08,
+                        line=dict(width=0)),
+            customdata=custom, hovertemplate=htmpl,
         ))
-        cx, cy = sub["umap_x"].mean(), sub["umap_y"].mean()
         if not dimmed:
-            fig.add_annotation(x=cx, y=cy, text=driver,
-                               font=dict(color=color, size=12, family="Barlow Condensed"),
-                               showarrow=False, xshift=14)
-
+            fig.add_annotation(
+                x=sub["umap_x"].mean(), y=sub["umap_y"].mean(), text=d,
+                font=dict(color=color, size=13, family="Barlow Condensed"),
+                showarrow=False, bgcolor="rgba(8,8,13,0.65)", borderpad=3,
+            )
+    fig.update_layout(**base_layout(430))
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
     return fig
 
 
-def make_telemetry(raw, driver, lap_num):
-    lap_df = raw[driver][raw[driver]["LapNumber"] == lap_num].reset_index(drop=True)
+def get_lap_df(raw, driver, lap_num):
+    return raw[driver][raw[driver]["LapNumber"] == lap_num].reset_index(drop=True)
+
+
+def make_telemetry(raw, driver, lap_num, compare=None, height=400):
+    """Four stacked channel traces. `compare` overlays a second driver."""
+    lap_df = get_lap_df(raw, driver, lap_num)
     if lap_df.empty:
         return None
-    channels = [("Throttle", "%"), ("Brake", ""), ("Speed", "km/h"), ("nGear", "")]
-    fig = make_subplots(rows=4, cols=1, shared_xaxes=True,
-                        vertical_spacing=0.03,
-                        row_heights=[0.3, 0.15, 0.35, 0.2])
-    color = DRIVER_COLORS.get(driver, "#888")
-    for i, (ch, unit) in enumerate(channels, 1):
-        if ch not in lap_df.columns:
-            continue
-        fig.add_trace(go.Scatter(
-            x=np.arange(len(lap_df)), y=lap_df[ch],
-            mode="lines", line=dict(color=color, width=1.2),
-            name=ch, showlegend=False,
-        ), row=i, col=1)
-        fig.update_yaxes(title_text=unit, row=i, col=1,
-                         gridcolor=GRID_COL, title_font=dict(size=9),
-                         tickfont=dict(size=8))
-    fig.update_xaxes(gridcolor=GRID_COL)
-    fig.update_layout(**base_layout(380),
-                      xaxis4=dict(title_text="Sample index", title_font=dict(size=10)))
+
+    series = [(driver, lap_df, DRIVER_COLORS.get(driver, "#888"), 1.0)]
+    if compare:
+        cmp_df = get_lap_df(raw, compare, lap_num)
+        if not cmp_df.empty:
+            series.append((compare, cmp_df, DRIVER_COLORS.get(compare, "#888"), 0.55))
+
+    channels = [("Throttle", "Throttle %"), ("Brake", "Brake"),
+                ("Speed", "Speed km/h"), ("nGear", "Gear")]
+    fig = make_subplots(rows=4, cols=1, shared_xaxes=True, vertical_spacing=0.04,
+                        row_heights=[0.3, 0.14, 0.35, 0.21])
+
+    for row, (ch, label) in enumerate(channels, 1):
+        for name, df, color, alpha in series:
+            if ch not in df.columns:
+                continue
+            fig.add_trace(go.Scatter(
+                x=np.arange(len(df)), y=df[ch], mode="lines", name=name,
+                line=dict(color=color, width=1.3),
+                opacity=alpha, legendgroup=name,
+                showlegend=(row == 1 and len(series) > 1),
+                hovertemplate=f"<b>{name}</b> · {label}: %{{y}}<extra></extra>",
+            ), row=row, col=1)
+        fig.update_yaxes(title_text=label, row=row, col=1, gridcolor=BORDER,
+                         zerolinecolor=BORDER, title_font=dict(size=9, color=TEXT_MUTE),
+                         tickfont=dict(size=8, color=TEXT_MUTE))
+
+    fig.update_xaxes(gridcolor=BORDER, zerolinecolor=BORDER,
+                     tickfont=dict(size=8, color=TEXT_MUTE))
+    fig.update_layout(**base_layout(height, legend=len(series) > 1))
+    fig.update_xaxes(title_text="Telemetry sample", row=4, col=1,
+                     title_font=dict(size=9, color=TEXT_MUTE))
     return fig
 
 
 def make_feature_importance(fi_df):
     df = fi_df.sort_values("importance")
+    labels = dict(zip(FEATURE_COLS, FEATURE_LABELS))
     fig = go.Figure(go.Bar(
-        x=df["importance"], y=df["feature"],
+        x=df["importance"], y=[labels.get(f, f) for f in df["feature"]],
         orientation="h",
         marker=dict(color=df["importance"],
-                    colorscale=[[0, "#1a1a2e"], [0.4, "#3b3b6e"], [1, "#e10600"]],
+                    colorscale=[[0, "#2a2a3d"], [0.5, "#7a2530"], [1, ACCENT]],
                     showscale=False),
         text=[f"{v:.3f}" for v in df["importance"]],
-        textposition="outside", textfont=dict(size=9, color="#6b7280"),
+        textposition="outside", textfont=dict(size=9, color=TEXT_MUTE),
+        hovertemplate="<b>%{y}</b>: %{x:.3f}<extra></extra>",
     ))
-    fig.update_layout(
-        **base_layout(320),
-        xaxis=dict(title_text="Importance", title_font=dict(size=10), gridcolor=GRID_COL),
-        yaxis=dict(tickfont=dict(size=9)),
-    )
+    fig.update_layout(**base_layout(340, legend=False))
+    fig.update_xaxes(title_text="Gain importance", gridcolor=BORDER,
+                     title_font=dict(size=9, color=TEXT_MUTE),
+                     tickfont=dict(size=8, color=TEXT_MUTE),
+                     range=[0, df["importance"].max() * 1.2])
+    fig.update_yaxes(tickfont=dict(size=9, color=TEXT_DIM), gridcolor=BORDER)
     return fig
 
 
 def make_training_curve(history_df):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=history_df["epoch"], y=history_df["train_acc"] * 100,
-        mode="lines", name="Train",
-        line=dict(color="#3b82f6", width=2),
+        x=history_df["epoch"], y=history_df["train_acc"] * 100, mode="lines",
+        name="Train", line=dict(color="#3b82f6", width=2),
+        hovertemplate="Epoch %{x} · Train %{y:.1f}%<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=history_df["epoch"], y=history_df["val_acc"] * 100,
-        mode="lines", name="Val",
-        line=dict(color="#e10600", width=2, dash="dot"),
+        x=history_df["epoch"], y=history_df["val_acc"] * 100, mode="lines",
+        name="Validation (held-out circuits)",
+        line=dict(color=ACCENT, width=2, dash="dot"),
+        hovertemplate="Epoch %{x} · Val %{y:.1f}%<extra></extra>",
     ))
-    fig.update_layout(
-        paper_bgcolor=PAPER_BG,
-        plot_bgcolor=PLOT_BG,
-        font=dict(color=TEXT_COL, family=FONT, size=11),
-        height=320,
-        xaxis=dict(title="Epoch", gridcolor=GRID_COL),
-        yaxis=dict(title_text="Accuracy (%)", gridcolor=GRID_COL, range=[0, 105]),
-        legend=dict(
-            bgcolor=PLOT_BG,
-            bordercolor="#e6e6ef",
-            font=dict(size=10)
-        ),
-    )
+    fig.update_layout(**base_layout(340))
+    fig.update_xaxes(title_text="Epoch", gridcolor=BORDER,
+                     title_font=dict(size=9, color=TEXT_MUTE),
+                     tickfont=dict(size=8, color=TEXT_MUTE))
+    fig.update_yaxes(title_text="Accuracy %", gridcolor=BORDER, range=[0, 105],
+                     title_font=dict(size=9, color=TEXT_MUTE),
+                     tickfont=dict(size=8, color=TEXT_MUTE))
     return fig
 
 
 # ─────────────────────────────────────────────
-# Load data
+# Sonification — turn a lap's telemetry into audio.
+# RPM -> pitch, Throttle -> volume, Brake -> percussive thump.
+# Exposes the same style differences the XGBoost features capture
+# (throttle smoothness, braking frequency, trail braking) through
+# your ears instead of your eyes.
+# ─────────────────────────────────────────────
+SAMPLE_RATE = 22050
+
+
+def sonify_lap(lap_df, sample_rate: int = SAMPLE_RATE) -> tuple:
+    """Returns (audio: float32 np.array in [-1, 1], sample_rate)."""
+    n = len(lap_df)
+    if n < 2:
+        return None, sample_rate
+
+    lap_time = lap_df["LapTime_s"].iloc[0] if "LapTime_s" in lap_df.columns else np.nan
+    if pd.isna(lap_time) or lap_time <= 0:
+        lap_time = 90.0
+    duration = float(np.clip(lap_time / 8.0, 5.0, 18.0))
+
+    rpm = (lap_df["RPM"].ffill().bfill().values.astype(float)
+           if "RPM" in lap_df.columns else np.full(n, 10000.0))
+    throttle = (lap_df["Throttle"].fillna(0).values.astype(float)
+                if "Throttle" in lap_df.columns else np.full(n, 50.0))
+    brake = ((lap_df["Brake"].fillna(0).values.astype(float) > 0).astype(float)
+             if "Brake" in lap_df.columns else np.zeros(n))
+
+    t_control = np.linspace(0, duration, n)
+    n_samples = int(sample_rate * duration)
+    t_audio   = np.linspace(0, duration, n_samples)
+
+    rpm_i      = np.interp(t_audio, t_control, rpm)
+    throttle_i = np.interp(t_audio, t_control, throttle)
+
+    rpm_lo, rpm_hi = np.percentile(rpm[rpm > 0], [5, 95]) if np.any(rpm > 0) else (4000, 12000)
+    if rpm_hi <= rpm_lo:
+        rpm_hi = rpm_lo + 1000
+    freq = np.interp(rpm_i, [rpm_lo, rpm_hi], [90, 340])
+
+    # Continuous phase (cumulative) avoids clicks from frequency jumps.
+    phase  = 2 * np.pi * np.cumsum(freq) / sample_rate
+    engine = 0.65 * sawtooth(phase) + 0.35 * sawtooth(2 * phase + 0.4)
+
+    amp   = np.interp(throttle_i, [0, 100], [0.06, 0.8])
+    audio = engine * amp
+
+    # Percussive thump on every brake-on edge, detected on the original
+    # unsmoothed signal — interpolation would blur out short brake stabs.
+    brake_onsets = np.where(np.diff(brake, prepend=0) > 0)[0]
+    thump_len = int(0.09 * sample_rate)
+    thump_env = np.exp(-np.linspace(0, 12, thump_len))
+    rng = np.random.default_rng(42)
+    for onset_idx in brake_onsets:
+        t0  = int(t_control[onset_idx] / duration * n_samples)
+        end = min(t0 + thump_len, n_samples)
+        seg = end - t0
+        if seg <= 0:
+            continue
+        audio[t0:end] += 0.55 * rng.uniform(-1, 1, seg) * thump_env[:seg]
+
+    peak = np.max(np.abs(audio))
+    if peak > 0:
+        audio = (audio / peak) * 0.9
+    return audio.astype(np.float32), sample_rate
+
+
+# ─────────────────────────────────────────────
+# Small render helpers
+# ─────────────────────────────────────────────
+def metric_card(col, color, label, value, note):
+    col.markdown(
+        f"<div class='metric' style='border-top:2px solid {color};'>"
+        f"<div class='metric-label'>{label}</div>"
+        f"<div class='metric-value' style='color:{color}'>{value}</div>"
+        f"<div class='metric-note'>{note}</div></div>",
+        unsafe_allow_html=True,
+    )
+
+
+def slabel(text):
+    st.markdown(f"<div class='slabel'>{text}</div>", unsafe_allow_html=True)
+
+
+def race_label(tag):
+    year, _, name = tag.partition("_")
+    return f"{name.title()} {year}"
+
+
+# ─────────────────────────────────────────────
+# Load
 # ─────────────────────────────────────────────
 try:
-    features_df, umap_df, history_df, fi_df, xgb_model, xgb_le, oof_df, raw, config, race_tag = load_all_data()
-except Exception as e:
-    st.error(f"Could not load data: {e}\n\nRun the pipeline scripts first.")
+    D = load_all_data()
+except Exception as exc:
+    st.error(f"Could not load data: {exc}\n\nRun the pipeline scripts first.")
     st.stop()
 
-all_drivers = config["drivers"]
+config      = D["config"]
+features_df = D["features_df"]
+umap_df     = D["umap_df"]
+history_df  = D["history_df"]
+fi_df       = D["fi_df"]
+xgb_le      = D["xgb_le"]
+oof_df      = D["oof_df"]
+raw         = D["raw"]
+
+all_drivers  = config["drivers"]
+race_tags    = [f"{r['year']}_{r['race'].lower()}" for r in config["races"]]
+seasons      = sorted({r["year"] for r in config["races"]})
+metrics      = compute_headline_metrics(oof_df, D["embed_df"])
 
 # ─────────────────────────────────────────────
-# Sidebar
-# ─────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style='font-family:Barlow Condensed;font-size:1.3rem;font-weight:800;
-    color:#14141f;letter-spacing:-0.01em;margin-bottom:2px;'>F1 Telemetry Lens</div>
-    <div style='font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:0.16em;
-    text-transform:uppercase;color:#e10600;margin-bottom:1.5rem;'>Driver Style Fingerprinting</div>
-    """, unsafe_allow_html=True)
-
-    _races = config["races"]
-    _seasons = sorted({r["year"] for r in _races})
-    st.caption(f"📍 {len(_races)} races · {_seasons[0]}–{_seasons[-1]}")
-
-    st.markdown("---")
-    st.markdown("**Radar — drivers to compare**")
-    selected_drivers = st.multiselect(
-        "drivers", options=all_drivers, default=all_drivers,
-        format_func=lambda x: f"{x} — {DRIVER_NAMES.get(x, x)}",
-        label_visibility="collapsed",
-    )
-
-    st.markdown("**UMAP — highlight driver**")
-    umap_highlight = st.selectbox(
-        "umap", options=["All"] + all_drivers,
-        label_visibility="collapsed",
-    )
-
-    st.markdown("---")
-    st.markdown("**Telemetry viewer**")
-    race_options = [f"{r['year']}_{r['race'].lower()}" for r in config["races"]]
-    telem_race = st.selectbox(
-        "trace", options=race_options,
-        format_func=lambda t: t.replace("_", " ").title(),
-        index=len(race_options) - 1,
-        label_visibility="collapsed",
-    )
-    telem_driver = st.selectbox(
-        "tdriver", options=all_drivers,
-        format_func=lambda x: f"{x} — {DRIVER_NAMES.get(x, x)}",
-        label_visibility="collapsed",
-    )
-    has_telem = telem_race in raw and not raw[telem_race][telem_driver].empty
-    if has_telem:
-        lap_options = sorted(raw[telem_race][telem_driver]["LapNumber"].dropna().unique().astype(int))
-        telem_lap   = st.selectbox("tlap", options=lap_options,
-                                   index=min(9, len(lap_options)-1),
-                                   label_visibility="collapsed")
-    else:
-        telem_lap = None
-        st.caption("Telemetry unavailable for this race in this environment.")
-
-    st.markdown("---")
-    st.markdown("""
-    <div style='font-size:0.65rem;color:#c7cad6;line-height:1.7;'>
-    DATA · FastF1<br>
-    ML · XGBoost + 1D-CNN<br>
-    VIZ · UMAP (32→2 dim)
-    </div>""", unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────
-# Hero
+# Masthead
 # ─────────────────────────────────────────────
 st.markdown(f"""
-<div class='hero'>
-  <div class='hero-title'>F1 Telemetry Lens</div>
-  <div class='hero-sub'>{len(config["races"])} Races · {sorted({r["year"] for r in config["races"]})[0]}–{sorted({r["year"] for r in config["races"]})[-1]} · Driver Style Analysis</div>
-  <div class='hero-desc'>
-    Can a machine learn to recognise a driver's identity purely from how they use the throttle,
-    brake, and gear? This pipeline learns a style fingerprint for each driver — no lap times,
-    no team data, just raw telemetry sequences.
+<div class='masthead'>
+  <div>
+    <div class='mast-title'>F1 TELEMETRY <span>LENS</span></div>
+    <div class='mast-tag'>
+      Can a model recognise a driver from nothing but how they use the throttle, brake
+      and gearbox? Every lap here is reduced to a style fingerprint &mdash; no lap times,
+      no team labels, no circuit hints.
+    </div>
+  </div>
+  <div class='mast-meta'>
+    <b>{len(config['races'])}</b> races &nbsp;·&nbsp; {seasons[0]}&ndash;{seasons[-1]}<br>
+    <b>{len(all_drivers)}</b> drivers &nbsp;·&nbsp; <b>{len(features_df):,}</b> laps<br>
+    XGBoost &nbsp;·&nbsp; 1D-CNN &nbsp;·&nbsp; UMAP
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-# Stat strip
-# ─────────────────────────────────────────────
-stat_items = [
-    ("#e10600", "XGBoost In-Track", "84.4%", "5-fold stratified OOF"),
-    ("#f97316", "XGBoost Cross-Track", "61.2%", "GroupKFold, held-out circuits"),
-    ("#a78bfa", "Silhouette",  "0.51",  "32-dim embeddings, cross-circuit"),
-    ("#ca8a04", "Races",       str(len(config["races"])), "2023–2024, 6 circuits"),
-    ("#3b82f6", "Laps",        str(len(features_df)), "after quality filter"),
-]
-cols = st.columns(len(stat_items))
-for col, (color, label, value, note) in zip(cols, stat_items):
-    with col:
-        st.markdown(f"""
-        <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-top:2px solid {color};
-        border-radius:6px;padding:1rem 1.1rem;'>
-          <div class='stat-label'>{label}</div>
-          <div class='stat-value' style='color:{color}'>{value}</div>
-          <div class='stat-note'>{note}</div>
-        </div>""", unsafe_allow_html=True)
+st.markdown("<div style='height:1.2rem'></div>", unsafe_allow_html=True)
 
-st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
+cols = st.columns(5, gap="small")
+metric_card(cols[0], ACCENT, "Same-circuit acc",
+            f"{metrics['intrack']*100:.1f}%" if "intrack" in metrics else "n/a",
+            "XGBoost, stratified 5-fold")
+metric_card(cols[1], "#f97316", "Cross-circuit acc",
+            f"{metrics['cross']*100:.1f}%" if "cross" in metrics else "n/a",
+            "Entire circuits held out")
+metric_card(cols[2], "#a78bfa", "Silhouette",
+            f"{metrics['silhouette']:.2f}" if "silhouette" in metrics else "n/a",
+            "CNN embeddings, 32-dim")
+metric_card(cols[3], "#facc15", "Random baseline",
+            f"{100/len(all_drivers):.1f}%", f"1 in {len(all_drivers)} drivers")
+metric_card(cols[4], "#3b82f6", "Laps analysed",
+            f"{len(features_df):,}", "After quality filtering")
 
-# ─────────────────────────────────────────────
-# Row: Radar + UMAP  (equal halves)
-# ─────────────────────────────────────────────
-col_r, col_u = st.columns(2, gap="large")
+st.markdown("<div style='height:1.8rem'></div>", unsafe_allow_html=True)
 
-with col_r:
-    st.markdown("<div class='section-header'>Style Fingerprint — Radar</div>", unsafe_allow_html=True)
-    if selected_drivers:
-        st.plotly_chart(make_radar(features_df, selected_drivers), use_container_width=True)
-        st.markdown("""<div class='chart-caption'>
-        Each axis is one driving style metric, normalized 0→1 across all drivers.
-        The <b>shape</b> of each polygon is that driver's signature.
-        VER's corner speed + coasting wedge reflects the RB19's 2023 aerodynamic advantage.
-        HAM's trail braking spike is his known car-rotation technique.
-        ALO's gear change spike reflects characteristically aggressive mechanical inputs.
-        </div>""", unsafe_allow_html=True)
-    else:
-        st.info("Select drivers from the sidebar.")
+tab_overview, tab_blind, tab_telemetry, tab_model = st.tabs(
+    ["Fingerprints", "Blind test", "Telemetry & audio", "Model"]
+)
 
-with col_u:
-    st.markdown("<div class='section-header'>Embedding Space — UMAP</div>", unsafe_allow_html=True)
-    highlight = None if umap_highlight == "All" else umap_highlight
-    st.plotly_chart(make_umap(umap_df, highlight), use_container_width=True)
-    st.markdown("""<div class='chart-caption'>
-    Each dot = one lap. The 1D-CNN learned these positions from raw telemetry sequences alone —
-    no hand-crafted features. Tight, separated clusters mean the model learned a genuine
-    fingerprint per driver, even across circuits it never trained on. <b>Silhouette: 0.51</b>
-    (cross-circuit, >0.5 = strong). ALO's inter/intra distance ratio is 3.3× — his laps
-    cluster tighter across all 12 races than a lap picked at random from another driver.
-    </div>""", unsafe_allow_html=True)
-
-st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────
-# Row: Blind ID (full width, styled panel)
-# ─────────────────────────────────────────────
-st.markdown("<div class='section-header'>Blind Identification Challenge</div>", unsafe_allow_html=True)
-st.markdown("""<p style='font-size:0.85rem;color:#6b7280;margin-bottom:1rem;margin-top:-0.5rem;'>
-Pick a random lap. The prediction shown is a genuine <b>out-of-fold</b> prediction, recorded once
-during cross-validation — the model that scored this exact lap never saw it during training. It is
-not the final model (which is fit on 100% of the data) re-scoring a lap it already memorized. Every
-number below is checkable: the feature values fed to the model and the raw telemetry trace for the
-lap are both shown so you can verify the prediction wasn't cherry-picked.
-</p>""", unsafe_allow_html=True)
-
-if oof_df is None:
-    st.warning("Out-of-fold predictions file not found. Re-run `python src/models/baseline.py` to generate it.")
-else:
-    mode = st.radio(
-        "Evaluation mode",
-        options=["In-track (84.4% acc)", "Cross-circuit — held-out track (61.2% acc, harder)"],
-        horizontal=True,
-        label_visibility="collapsed",
+# ═════════════════════════════════════════════
+# TAB 1 — Fingerprints
+# ═════════════════════════════════════════════
+with tab_overview:
+    st.markdown(
+        "<div class='intro'>Two views of the same question. On the left, nine "
+        "hand-crafted style metrics averaged per driver &mdash; interpretable, but "
+        "coarse. On the right, a 1D-CNN's own 32-dimensional representation of every "
+        "individual lap, projected to 2D. Nobody told the network what to look for; the "
+        "clusters are what it decided mattered.</div>",
+        unsafe_allow_html=True,
     )
-    is_crosscircuit = mode.startswith("Cross-circuit")
-    pred_col_prefix = "oof_pred_crosscircuit" if is_crosscircuit else "oof_pred_intrack"
-    prob_col_prefix = "oof_prob_crosscircuit" if is_crosscircuit else "oof_prob_intrack"
 
-    bcol_btn, bcol_result, bcol_bars = st.columns([1, 1, 2], gap="large")
+    left, right = st.columns(2, gap="large")
 
-    with bcol_btn:
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-        if st.button("🎲  Pick random lap", use_container_width=True, type="primary"):
-            st.session_state["blind_idx"] = oof_df.sample(1).index[0]
-        st.markdown("""<div style='font-size:0.75rem;color:#8a8fa3;margin-top:0.75rem;line-height:1.6;'>
-        HAM and LEC are hardest to tell apart in cross-circuit mode — their trail-braking-heavy
-        styles overlap most. VER and NOR hold up best on unseen tracks.
-        </div>""", unsafe_allow_html=True)
+    with left:
+        slabel("Style fingerprint")
+        picked = st.multiselect(
+            "Drivers on the radar", options=all_drivers, default=all_drivers,
+            format_func=lambda d: f"{d} — {DRIVER_NAMES.get(d, d)}",
+        )
+        if picked:
+            st.plotly_chart(make_radar(features_df, picked), width="stretch",
+                            config={"displayModeBar": False})
+            st.markdown(
+                "<div class='note'>Each axis is one metric, min-max normalised across "
+                "all six drivers, so the <b>shape</b> is the signature rather than the "
+                "size. Overlapping polygons are exactly the pairs the classifier "
+                "confuses most.</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown("<div class='empty'>Pick at least one driver to draw the "
+                        "radar.</div>", unsafe_allow_html=True)
 
-    if "blind_idx" in st.session_state and st.session_state["blind_idx"] in oof_df.index:
-        blind       = oof_df.loc[st.session_state["blind_idx"]]
-        true_driver = blind["Driver"]
-        pred_driver = blind[pred_col_prefix]
-        probs       = {cls: blind[f"{prob_col_prefix}_{cls}"] for cls in xgb_le.classes_}
-        correct     = pred_driver == true_driver
-        dcolor      = DRIVER_COLORS.get(true_driver, "#14141f")
-        verdict_color = "#16a34a" if correct else "#e10600"
-        verdict_text  = "✓  CORRECT" if correct else "✗  WRONG"
+    with right:
+        slabel("Learned embedding space")
+        focus = st.selectbox(
+            "Isolate a driver", options=["Show all"] + all_drivers,
+            format_func=lambda d: d if d == "Show all" else f"{d} — {DRIVER_NAMES.get(d, d)}",
+        )
+        st.plotly_chart(
+            make_umap(umap_df, None if focus == "Show all" else focus),
+            width="stretch", config={"displayModeBar": False},
+        )
+        sil_txt = (f"Silhouette <b>{metrics['silhouette']:.2f}</b> across all 12 races. "
+                   if "silhouette" in metrics else "")
+        st.markdown(
+            f"<div class='note'>One dot per lap, UMAP-projected from the CNN's 32-dim "
+            f"embedding. {sil_txt}Clusters this separated across circuits the encoder "
+            f"never trained on is the strongest evidence here that something "
+            f"driver-specific is being learned &mdash; with the caveat in the Model "
+            f"tab about how much of it is really the car.</div>",
+            unsafe_allow_html=True,
+        )
 
-        with bcol_result:
+# ═════════════════════════════════════════════
+# TAB 2 — Blind test
+# ═════════════════════════════════════════════
+with tab_blind:
+    if oof_df is None:
+        st.markdown(
+            "<div class='empty'>No out-of-fold prediction file found. Run "
+            "<code>python src/models/baseline.py</code> to generate "
+            "<code>all_races_oof_predictions.csv</code>.</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            "<div class='intro'>Draw a lap at random and see whether the classifier "
+            "gets it. The prediction is a genuine <b>out-of-fold</b> result recorded "
+            "during cross-validation &mdash; the model that scored this lap never saw "
+            "it in training. It is not the final model re-scoring data it already "
+            "memorised, which would make the whole demo meaningless. Everything "
+            "feeding the decision is shown below so you can check it rather than "
+            "take it on trust.</div>",
+            unsafe_allow_html=True,
+        )
+
+        ctrl_left, ctrl_right = st.columns([2.2, 1], gap="large")
+        with ctrl_left:
+            mode = st.radio(
+                "Evaluation split",
+                options=["Same circuit", "Held-out circuit"],
+                horizontal=True,
+                captions=[
+                    f"Stratified 5-fold — {metrics.get('intrack', 0)*100:.1f}% overall",
+                    f"GroupKFold by race — {metrics.get('cross', 0)*100:.1f}% overall",
+                ],
+            )
+        with ctrl_right:
+            st.markdown("<div style='height:1.85rem'></div>", unsafe_allow_html=True)
+            draw = st.button("Draw a random lap", width="stretch", type="primary")
+
+        cross = mode == "Held-out circuit"
+        pred_col = "oof_pred_crosscircuit" if cross else "oof_pred_intrack"
+        prob_pre = "oof_prob_crosscircuit" if cross else "oof_prob_intrack"
+
+        missing_split = pred_col not in oof_df.columns
+        if missing_split:
+            st.markdown(
+                "<div class='empty'>This split is not present in the prediction file. "
+                "Re-run <code>baseline.py</code> with data from five or more "
+                "races.</div>", unsafe_allow_html=True)
+
+    if oof_df is not None and not missing_split:
+        # Draw one on first visit so the tab is never empty.
+        if draw or "blind_idx" not in st.session_state:
+            st.session_state["blind_idx"] = int(oof_df.sample(1).index[0])
+
+        lap = oof_df.loc[st.session_state["blind_idx"]]
+        truth = lap["Driver"]
+        pred  = lap[pred_col]
+        hit   = pred == truth
+        probs = {c: lap[f"{prob_pre}_{c}"] for c in xgb_le.classes_
+                 if f"{prob_pre}_{c}" in lap.index}
+
+        tcolor = DRIVER_COLORS.get(truth, TEXT)
+        vcolor = "#22c55e" if hit else ACCENT
+
+        st.markdown("<div style='height:1.2rem'></div>", unsafe_allow_html=True)
+        card, bars = st.columns([1, 1.7], gap="large")
+
+        with card:
             st.markdown(f"""
-            <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-left:3px solid {dcolor};
-            border-radius:8px;padding:1.25rem;'>
-              <div style='font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:0.14em;
-              text-transform:uppercase;color:#8a8fa3;'>Actual · {blind['Race']} {int(blind['Season'])} · Lap {int(blind["LapNumber"])}</div>
-              <div style='font-family:Barlow Condensed;font-size:3rem;font-weight:800;
-              color:{dcolor};line-height:1;margin:4px 0 2px;'>{true_driver}</div>
-              <div style='font-size:0.8rem;color:#6b7280;'>{DRIVER_NAMES.get(true_driver, true_driver)}
-              &nbsp;·&nbsp; Lap time {blind['LapTime_s']:.2f}s</div>
-              <div style='font-family:Barlow Condensed;font-size:1.1rem;font-weight:700;
-              color:{verdict_color};letter-spacing:0.06em;margin-top:1rem;'>{verdict_text}</div>
-              <div style='font-size:0.72rem;color:#9aa0b4;margin-top:2px;'>Predicted: {pred_driver}</div>
+            <div class='vcard' style='border-left:3px solid {tcolor};'>
+              <div class='vcard-kicker'>{lap['Race']} {int(lap['Season'])} &nbsp;·&nbsp; Lap {int(lap['LapNumber'])}</div>
+              <div class='vcard-code' style='color:{tcolor};'>{truth}</div>
+              <div class='vcard-name'>{DRIVER_NAMES.get(truth, truth)}
+                &nbsp;·&nbsp; {lap['LapTime_s']:.2f}s</div>
+              <div class='verdict' style='color:{vcolor};'>
+                {'Identified correctly' if hit else 'Misidentified'}
+                <div class='verdict-sub'>Model said {pred}
+                  ({DRIVER_NAMES.get(pred, pred)})</div>
+              </div>
             </div>
             """, unsafe_allow_html=True)
 
-        with bcol_bars:
-            bars_html = ""
-            for cls, prob in sorted(probs.items(), key=lambda x: x[1], reverse=True):
-                bc      = DRIVER_COLORS.get(cls, "#888")
-                is_pred = cls == pred_driver
-                weight  = "700" if is_pred else "400"
-                prefix  = "▶ " if is_pred else "&nbsp;&nbsp;&nbsp;"
-                opacity = "1" if is_pred else "0.3"
-                bars_html += f"""
-                <div style='margin-bottom:9px;'>
-                  <div style='display:flex;justify-content:space-between;
-                  font-family:Barlow Condensed;font-size:0.88rem;margin-bottom:3px;'>
-                    <span style='color:{bc};font-weight:{weight};'>{prefix}{cls} — {DRIVER_NAMES.get(cls,cls)}</span>
-                    <span style='color:#9aa0b4;'>{prob*100:.1f}%</span>
-                  </div>
-                  <div style='background:#eceef4;border-radius:3px;height:5px;'>
-                    <div style='background:{bc};width:{prob*100:.1f}%;height:5px;
-                    border-radius:3px;opacity:{opacity};transition:width 0.3s;'></div>
-                  </div>
-                </div>"""
+        with bars:
+            slabel("Out-of-fold confidence")
+            rows = ""
+            for cls, p in sorted(probs.items(), key=lambda kv: kv[1], reverse=True):
+                c = DRIVER_COLORS.get(cls, "#888")
+                lead = cls == pred
+                rows += (
+                    f"<div class='pbar-row'>"
+                    f"<div class='pbar-head'>"
+                    f"<span style='color:{c};font-weight:{700 if lead else 400};'>"
+                    f"{cls} — {DRIVER_NAMES.get(cls, cls)}</span>"
+                    f"<span style='color:{TEXT_DIM};font-variant-numeric:tabular-nums;'>"
+                    f"{p*100:.1f}%</span></div>"
+                    f"<div class='pbar-track'><div class='pbar-fill' style='background:{c};"
+                    f"width:{max(p*100, 0.6):.1f}%;opacity:{1 if lead else 0.35};'></div></div>"
+                    f"</div>"
+                )
+            st.markdown(f"<div class='panel'>{rows}</div>", unsafe_allow_html=True)
 
-            st.markdown("<div style='margin-bottom:10px;font-weight:600;'>Model confidence (out-of-fold)</div>", unsafe_allow_html=True)
-
-            st.components.v1.html(
-                f"""
-                <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-radius:8px;
-                padding:1.25rem;font-family:Inter;color:#1a1a2e;'>
-                    {bars_html}
-                </div>
-                """,
-                height=250,
-                scrolling=True
-            )
-
-        # ── Verify it yourself ──
-        with st.expander("🔍  Verify it yourself — feature values + raw telemetry for this exact lap"):
+        with st.expander("Audit this prediction — the exact inputs and raw trace"):
             match = features_df[
-                (features_df["Driver"] == true_driver)
-                & (features_df["Race"] == blind["Race"])
-                & (features_df["Season"] == blind["Season"])
-                & (features_df["LapNumber"] == blind["LapNumber"])
+                (features_df["Driver"] == truth)
+                & (features_df["Race"] == lap["Race"])
+                & (features_df["Season"] == lap["Season"])
+                & (features_df["LapNumber"] == lap["LapNumber"])
             ]
-            vcol1, vcol2 = st.columns([1, 1.6], gap="large")
-            with vcol1:
-                st.markdown("**Inputs fed to the model**")
-                if not match.empty:
-                    row = match.iloc[0]
-                    rows_html = "".join(
-                        f"<tr><td>{label}</td><td>{row[col]:.4f}</td></tr>"
-                        for col, label in zip(FEATURE_COLS, FEATURE_LABELS)
-                    )
-                    st.markdown(f"<table class='verify-table'>{rows_html}</table>", unsafe_allow_html=True)
+            acol, bcol = st.columns([1, 1.5], gap="large")
+            with acol:
+                slabel("The nine values fed to the model")
+                if match.empty:
+                    st.markdown("<div class='empty'>Feature row not found — the "
+                                "features file looks out of sync with the prediction "
+                                "file.</div>", unsafe_allow_html=True)
                 else:
-                    st.caption("Feature row not found — features_df may be out of sync with the OOF file.")
-
-            with vcol2:
-                st.markdown("**Raw telemetry for this lap**")
-                rtag = f"{int(blind['Season'])}_{blind['Race'].lower()}"
-                if rtag in raw and not raw[rtag][true_driver].empty:
-                    fig_verify = make_telemetry(raw[rtag], true_driver, float(blind["LapNumber"]))
-                    if fig_verify:
-                        fig_verify.update_layout(height=260)
-                        st.plotly_chart(fig_verify, use_container_width=True)
+                    r = match.iloc[0]
+                    body = "".join(f"<tr><td>{lbl}</td><td>{r[col]:.4f}</td></tr>"
+                                   for col, lbl in zip(FEATURE_COLS, FEATURE_LABELS))
+                    st.markdown(f"<table class='kv'>{body}</table>", unsafe_allow_html=True)
+            with bcol:
+                slabel("Raw telemetry for this lap")
+                rtag = f"{int(lap['Season'])}_{lap['Race'].lower()}"
+                if rtag in raw and not raw[rtag][truth].empty:
+                    fig = make_telemetry(raw[rtag], truth, float(lap["LapNumber"]), height=300)
+                    if fig:
+                        st.plotly_chart(fig, width="stretch",
+                                        config={"displayModeBar": False})
                     else:
-                        st.caption("No telemetry samples found for this lap.")
+                        st.markdown("<div class='empty'>No telemetry samples for this "
+                                    "lap.</div>", unsafe_allow_html=True)
                 else:
-                    st.caption("Raw telemetry unavailable in this environment (parquet files not present).")
+                    st.markdown("<div class='empty'>Raw telemetry is not bundled in "
+                                "this environment.</div>", unsafe_allow_html=True)
 
+# ═════════════════════════════════════════════
+# TAB 3 — Telemetry & audio
+# ═════════════════════════════════════════════
+with tab_telemetry:
+    st.markdown(
+        "<div class='intro'>The raw signal behind everything else. Pick a lap, then "
+        "overlay a second driver to see where two styles diverge &mdash; and use the "
+        "same selection to <b>hear</b> it, since a braking rhythm is often easier to "
+        "recognise by ear than by eye.</div>",
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3, c4 = st.columns(4, gap="medium")
+    sel_race = c1.selectbox("Race", options=race_tags, format_func=race_label,
+                            index=len(race_tags) - 1)
+    sel_driver = c2.selectbox("Driver", options=all_drivers,
+                              format_func=lambda d: f"{d} — {DRIVER_NAMES.get(d, d)}")
+
+    available = raw.get(sel_race, {})
+    has_data = bool(available) and not available[sel_driver].empty
+
+    if has_data:
+        laps = sorted(available[sel_driver]["LapNumber"].dropna().unique().astype(int))
+        sel_lap = c3.selectbox("Lap", options=laps, index=min(9, len(laps) - 1))
+        others = [d for d in all_drivers if d != sel_driver
+                  and not available.get(d, pd.DataFrame()).empty]
+        sel_cmp = c4.selectbox("Overlay", options=["None"] + others,
+                               format_func=lambda d: d if d == "None"
+                               else f"{d} — {DRIVER_NAMES.get(d, d)}")
+        cmp_driver = None if sel_cmp == "None" else sel_cmp
     else:
-        with bcol_result:
-            st.markdown("""
-            <div style='background:#fbfbfe;border:1px dashed #e6e6ef;border-radius:8px;
-            padding:2rem;text-align:center;color:#c7cad6;
-            font-family:Barlow Condensed;font-size:0.9rem;letter-spacing:0.06em;'>
-            AWAITING SELECTION
-            </div>""", unsafe_allow_html=True)
+        sel_lap, cmp_driver = None, None
+        c3.selectbox("Lap", options=["—"], disabled=True)
+        c4.selectbox("Overlay", options=["—"], disabled=True)
 
-st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-# Row: Telemetry (full width)
-# ─────────────────────────────────────────────
-telem_title = (f"Raw Telemetry — {telem_driver} · {telem_race.replace('_', ' ').title()} · Lap {telem_lap}"
-               if telem_lap else f"Raw Telemetry — {telem_driver}")
-st.markdown(f"<div class='section-header'>{telem_title}</div>", unsafe_allow_html=True)
+    if not has_data:
+        st.markdown(
+            "<div class='empty'>Raw telemetry is not available in this environment "
+            "&mdash; the parquet files are large and may be excluded from the deploy. "
+            "Clone the repo and run <code>python src/data/fetch_telemetry.py</code> to "
+            "populate it.</div>", unsafe_allow_html=True)
+    else:
+        fig = make_telemetry(raw[sel_race], sel_driver, float(sel_lap), compare=cmp_driver)
+        if fig:
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        st.markdown(
+            "<div class='note'><b>Throttle</b> — square drops mean an abrupt lift, "
+            "gradual ramps mean a smoother release. &nbsp; <b>Brake</b> — binary, so "
+            "each block is one braking zone. &nbsp; <b>Speed</b> — the valleys are "
+            "corners, and a higher valley floor means more speed carried through. "
+            "&nbsp; <b>Gear</b> — busier steps mean more mechanical input.</div>",
+            unsafe_allow_html=True,
+        )
 
-if telem_lap is not None:
-    fig_t = make_telemetry(raw[telem_race], telem_driver, float(telem_lap))
-    if fig_t:
-        st.plotly_chart(fig_t, use_container_width=True)
-    st.markdown("""<div class='chart-caption'>
-    <b>Throttle</b> — sharp square drops = aggressive lift-off; gradual ramps = smooth style. &nbsp;
-    <b>Brake</b> — binary (0/1); each spike is a braking zone. &nbsp;
-    <b>Speed</b> — valleys are corners; a higher valley = more corner speed carried. &nbsp;
-    <b>nGear</b> — frequent shifts = aggressive mechanical input.
-    Try selecting different drivers on the same lap number — the style differences are visible to the naked eye.
+        st.markdown("<hr>", unsafe_allow_html=True)
+
+        slabel("The same lap, as sound")
+        st.markdown(
+            "<div class='intro'>Engine pitch follows <b>RPM</b>, loudness follows "
+            "<b>throttle</b>, and every <b>braking</b> zone lands as a percussive hit. "
+            "Generate both drivers and play them back to back — a smooth trail-braker "
+            "and a late stabber sound obviously different.</div>",
+            unsafe_allow_html=True,
+        )
+
+        def audio_block(container, driver, slot):
+            """Render a generate-button plus player, keyed so stale audio is discarded."""
+            sig = f"{sel_race}|{driver}|{sel_lap}"
+            with container:
+                st.markdown(
+                    f"<div class='slabel' style='color:{DRIVER_COLORS.get(driver, TEXT)}'>"
+                    f"{driver} — {DRIVER_NAMES.get(driver, driver)}</div>",
+                    unsafe_allow_html=True)
+                if st.button("Generate audio", key=f"gen_{slot}", width="stretch"):
+                    st.session_state[f"audio_{slot}"] = (sig, sonify_lap(
+                        get_lap_df(raw[sel_race], driver, float(sel_lap))))
+                stored = st.session_state.get(f"audio_{slot}")
+                if stored and stored[0] == sig and stored[1][0] is not None:
+                    samples, rate = stored[1]
+                    st.audio(samples, sample_rate=rate)
+                elif stored and stored[0] != sig:
+                    st.markdown(f"<div class='metric-note'>Selection changed — "
+                                f"generate again.</div>", unsafe_allow_html=True)
+
+        acol, bcol = st.columns(2, gap="large")
+        audio_block(acol, sel_driver, "a")
+        if cmp_driver:
+            audio_block(bcol, cmp_driver, "b")
+        else:
+            bcol.markdown("<div style='height:1.9rem'></div>"
+                          "<div class='empty'>Choose an overlay driver above to "
+                          "compare two laps by ear.</div>", unsafe_allow_html=True)
+
+# ═════════════════════════════════════════════
+# TAB 4 — Model
+# ═════════════════════════════════════════════
+with tab_model:
+    st.markdown(
+        "<div class='intro'>What the models actually learned, and where the result "
+        "should be treated with suspicion.</div>",
+        unsafe_allow_html=True,
+    )
+
+    left, right = st.columns(2, gap="large")
+    with left:
+        slabel("Which features carried the signal")
+        st.plotly_chart(make_feature_importance(fi_df), width="stretch",
+                        config={"displayModeBar": False})
+        st.markdown(
+            "<div class='note'><b>Trail braking</b> and <b>gear changes</b> lead, which "
+            "is reassuring — both describe how a driver works the car rather than how "
+            "fast the car is. <b>Corner speed</b> ranks high too, but it is the one "
+            "metric most contaminated by raw machinery.</div>",
+            unsafe_allow_html=True,
+        )
+
+    with right:
+        slabel("CNN training, validated on unseen circuits")
+        st.plotly_chart(make_training_curve(history_df), width="stretch",
+                        config={"displayModeBar": False})
+        best_val = history_df["val_acc"].max() * 100
+        st.markdown(
+            f"<div class='note'>Validation laps come from <b>entirely held-out "
+            f"circuits</b>, not merely unseen laps, peaking at <b>{best_val:.1f}%</b>. "
+            f"That it beats the feature-based model by such a margin is itself a "
+            f"warning sign — see below.</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    slabel("How the two evaluations differ")
+    ev1, ev2 = st.columns(2, gap="large")
+    with ev1:
+        st.markdown(f"""
+        <div class='panel'>
+          <div style='font-family:Barlow Condensed;font-size:1.6rem;font-weight:700;
+          color:{ACCENT};line-height:1;'>{metrics.get('intrack', 0)*100:.1f}%</div>
+          <div class='metric-label' style='margin-top:6px;'>Same circuit · stratified 5-fold</div>
+          <div class='metric-note'>Laps from one race can land in both the training and
+          validation folds. It answers "is there a detectable style at all", and it is
+          the number most projects would quote on its own.</div>
+        </div>""", unsafe_allow_html=True)
+    with ev2:
+        gap = (metrics.get("intrack", 0) - metrics.get("cross", 0)) * 100
+        st.markdown(f"""
+        <div class='panel'>
+          <div style='font-family:Barlow Condensed;font-size:1.6rem;font-weight:700;
+          color:#f97316;line-height:1;'>{metrics.get('cross', 0)*100:.1f}%</div>
+          <div class='metric-label' style='margin-top:6px;'>Held-out circuit · GroupKFold by race</div>
+          <div class='metric-note'>Whole circuits are removed from training, so nothing
+          from the test track leaks in. The <b>{gap:.1f} point</b> drop is the honest
+          cost of generalising to a track the model has never seen.</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:1.4rem'></div>", unsafe_allow_html=True)
+
+    slabel("Known limitations")
+    st.markdown(f"""
+    <div class='panel' style='font-size:0.84rem;color:{TEXT_DIM};line-height:1.7;'>
+      <p style='margin:0 0 0.9rem;'><b style='color:{TEXT};'>The car is a confound, and
+      it showed up concretely.</b> An early version fed <code>RPM</code> to the CNN and
+      scored a suspicious 99.4% on held-out circuits. RPM range is set almost entirely by
+      the power unit, so the network was largely fingerprinting the car. Dropping the
+      channel took it to 94.2% — still far above the 61.2% the feature-based model
+      manages, which suggests <code>Speed</code> and <code>nGear</code> carry residual
+      car and aero signal too.</p>
+      <p style='margin:0 0 0.9rem;'><b style='color:{TEXT};'>The clean experiment has not
+      been run yet.</b> Comparing team-mates in identical machinery — Verstappen against
+      Pérez, Leclerc against Sainz — would separate driver from car properly. Until then
+      every number here should be read as "driver and car combined".</p>
+      <p style='margin:0;'><b style='color:{TEXT};'>Two seasons is a narrow window.</b>
+      Twelve races across 2023–2024 keeps the driver line-ups stable, which is what makes
+      the comparison tractable, but it also means these fingerprints are not tested
+      against regulation changes or mid-career team moves.</p>
     </div>""", unsafe_allow_html=True)
-else:
-    st.markdown("""<div style='background:#fbfbfe;border:1px dashed #e6e6ef;border-radius:6px;
-    padding:1.5rem;font-size:0.85rem;color:#8a8fa3;'>
-    Raw telemetry is not available in this deployed environment (files excluded due to size ~200MB).
-    Clone the repo and run <code>python src/data/fetch_telemetry.py</code> to enable this panel locally.
-    </div>""", unsafe_allow_html=True)
 
-st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:1.4rem'></div>", unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-# Row: Feature importance + Training curve
-# ─────────────────────────────────────────────
-col_fi, col_tc = st.columns(2, gap="large")
-
-with col_fi:
-    st.markdown("<div class='section-header'>XGBoost Feature Importance</div>", unsafe_allow_html=True)
-    st.plotly_chart(make_feature_importance(fi_df), use_container_width=True)
-    st.markdown("""<div class='chart-caption'>
-    Longer bar = the model relied on this feature more across all CV folds.
-    <b>throttle_brake_overlap</b> (trail braking) and <b>gear_change_freq</b> dominate — these
-    are largely car-independent, reflecting how a driver rotates the car through corners rather
-    than raw car performance. <b>mean_corner_speed</b> still ranks high but is the feature most
-    likely to carry car/aero signal alongside driving style.
-    </div>""", unsafe_allow_html=True)
-
-with col_tc:
-    st.markdown("<div class='section-header'>CNN Training Curve</div>", unsafe_allow_html=True)
-    st.plotly_chart(make_training_curve(history_df), use_container_width=True)
-    st.markdown("""<div class='chart-caption'>
-    Blue = train accuracy, red dashed = validation accuracy — but here validation laps come
-    from <b>entirely held-out circuits</b>, not just unseen laps. Val hit 94.2% before early
-    stopping. That's still higher than XGBoost's 61.2% cross-circuit score, suggesting the raw
-    telemetry channels (Speed, nGear) retain some car-specific signal the CNN can exploit.
-    </div>""", unsafe_allow_html=True)
+    sil_ce = metrics.get("silhouette")
+    sil_sc = compute_silhouette(D["contrast_df"])
+    if sil_sc is not None:
+        slabel("Encoder comparison")
+        st.markdown(f"""
+        <div class='panel'>
+          <table class='kv'>
+            <tr><td>Cross-entropy encoder — silhouette (32-dim)</td>
+                <td>{sil_ce:.2f}</td></tr>
+            <tr><td>Supervised-contrastive encoder — silhouette (cosine)</td>
+                <td>{sil_sc:.2f}</td></tr>
+          </table>
+          <div class='metric-note' style='margin-top:0.8rem;'>Training the same backbone
+          with a SupCon objective, so that same-driver laps are pulled together directly
+          rather than as a side effect of classification, produces a visibly tighter
+          embedding space. Both were trained and scored on the same held-out-circuit
+          split.</div>
+        </div>""", unsafe_allow_html=True)

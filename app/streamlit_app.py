@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from scipy.signal import sawtooth
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -34,11 +35,11 @@ st.markdown("""
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-.stApp { background-color: #ffffff; color: #1a1a2e; }
+.stApp { background-color: #08080e; color: #dddde8; }
 
 [data-testid="stSidebar"] {
-    background-color: #f8f9fc !important;
-    border-right: 1px solid #e6e6ef;
+    background-color: #0f0f18 !important;
+    border-right: 1px solid #1e1e2e;
 }
 [data-testid="stSidebar"] * { font-size: 0.875rem; }
 
@@ -53,7 +54,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 2.75rem;
     letter-spacing: -0.02em;
     line-height: 1;
-    color: #14141f;
+    color: #fff;
     margin: 0;
 }
 .hero-sub {
@@ -66,7 +67,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 }
 .hero-desc {
     font-size: 0.9rem;
-    color: #5a5f78;
+    color: #6b6b8a;
     margin-top: 10px;
     max-width: 680px;
     line-height: 1.6;
@@ -76,14 +77,14 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .stat-strip {
     display: flex;
     gap: 1px;
-    background: #e6e6ef;
+    background: #1e1e2e;
     border-radius: 6px;
     overflow: hidden;
     margin-bottom: 2.5rem;
 }
 .stat-item {
     flex: 1;
-    background: #fbfbfe;
+    background: #0f0f18;
     padding: 1rem 1.25rem;
     min-width: 0;
 }
@@ -92,7 +93,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 0.65rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #6b7280;
+    color: #4a4a6a;
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -107,7 +108,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 }
 .stat-note {
     font-size: 0.7rem;
-    color: #8a8fa3;
+    color: #3a3a5a;
     margin-top: 3px;
 }
 
@@ -118,37 +119,36 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 0.7rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #6b7280;
+    color: #4a4a6a;
     padding-bottom: 8px;
-    border-bottom: 1px solid #e6e6ef;
+    border-bottom: 1px solid #1e1e2e;
     margin-bottom: 1rem;
 }
 
 /* ── Chart card ── */
 .chart-card {
-    background: #fbfbfe;
-    border: 1px solid #e6e6ef;
+    background: #0f0f18;
+    border: 1px solid #1e1e2e;
     border-radius: 8px;
     padding: 1.25rem 1.25rem 0.75rem;
     height: 100%;
-    box-shadow: 0 1px 2px rgba(20,20,31,0.03);
 }
 
 /* ── Caption ── */
 .chart-caption {
     font-size: 0.78rem;
-    color: #6b7280;
+    color: #4a4a6a;
     line-height: 1.55;
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid #e6e6ef;
+    border-top: 1px solid #1e1e2e;
 }
-.chart-caption b { color: #33374a; }
+.chart-caption b { color: #8a8aaa; }
 
 /* ── Blind ID panel ── */
 .blind-panel {
-    background: #fbfbfe;
-    border: 1px solid #e6e6ef;
+    background: #0f0f18;
+    border: 1px solid #1e1e2e;
     border-radius: 8px;
     padding: 1.25rem;
 }
@@ -160,7 +160,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 }
 .blind-driver-full {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: #4a4a6a;
     margin-top: 2px;
     margin-bottom: 1rem;
 }
@@ -172,7 +172,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 0.82rem;
     margin-bottom: 3px;
 }
-.prob-track { background: #eceef4; border-radius: 2px; height: 4px; }
+.prob-track { background: #1a1a28; border-radius: 2px; height: 4px; }
 .verdict {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 1.2rem;
@@ -183,9 +183,9 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
 /* ── Verify table ── */
 .verify-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-.verify-table td { padding: 4px 8px; border-bottom: 1px solid #eceef4; }
-.verify-table td:first-child { color: #6b7280; }
-.verify-table td:last-child { text-align: right; font-weight: 600; color: #14141f; }
+.verify-table td { padding: 4px 8px; border-bottom: 1px solid #1a1a28; }
+.verify-table td:first-child { color: #4a4a6a; }
+.verify-table td:last-child { text-align: right; font-weight: 600; color: #dddde8; }
 
 /* ── Divider ── */
 .spacer { height: 2rem; }
@@ -202,7 +202,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 # ─────────────────────────────────────────────
 DRIVER_COLORS = {
     "VER": "#3b82f6", "HAM": "#a78bfa", "ALO": "#f87171",
-    "LEC": "#f97316", "SAI": "#ca8a04", "NOR": "#16a34a",
+    "LEC": "#f97316", "SAI": "#facc15", "NOR": "#34d399",
 }
 DRIVER_NAMES = {
     "VER": "Max Verstappen", "HAM": "Lewis Hamilton", "ALO": "Fernando Alonso",
@@ -220,10 +220,10 @@ FEATURE_LABELS = [
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-PLOT_BG   = "#ffffff"
-PAPER_BG  = "#ffffff"
-GRID_COL  = "#eceef4"
-TEXT_COL  = "#1a1a2e"
+PLOT_BG   = "#0f0f18"
+PAPER_BG  = "#08080e"
+GRID_COL  = "#1a1a28"
+TEXT_COL  = "#dddde8"
 FONT      = "Inter"
 
 # ─────────────────────────────────────────────
@@ -300,10 +300,10 @@ def make_radar(features_df, selected_drivers):
         polar=dict(
             bgcolor=PLOT_BG,
             radialaxis=dict(visible=True, range=[0, 1], gridcolor=GRID_COL,
-                            tickfont=dict(color="#8a8fa3", size=8), tickvals=[0.25,0.5,0.75,1.0]),
-            angularaxis=dict(gridcolor=GRID_COL, tickfont=dict(color="#9aa0b4", size=10)),
+                            tickfont=dict(color="#3a3a5a", size=8), tickvals=[0.25,0.5,0.75,1.0]),
+            angularaxis=dict(gridcolor=GRID_COL, tickfont=dict(color="#8a8aaa", size=10)),
         ),
-        legend=dict(bgcolor=PLOT_BG, bordercolor="#e6e6ef", borderwidth=1,
+        legend=dict(bgcolor=PLOT_BG, bordercolor="#1e1e2e", borderwidth=1,
                     font=dict(size=10), orientation="v", x=1.05, y=1)
                             )
     return fig
@@ -333,8 +333,12 @@ def make_umap(umap_df, highlight=None):
     return fig
 
 
+def get_lap_df(raw, driver, lap_num):
+    return raw[driver][raw[driver]["LapNumber"] == lap_num].reset_index(drop=True)
+
+
 def make_telemetry(raw, driver, lap_num):
-    lap_df = raw[driver][raw[driver]["LapNumber"] == lap_num].reset_index(drop=True)
+    lap_df = get_lap_df(raw, driver, lap_num)
     if lap_df.empty:
         return None
     channels = [("Throttle", "%"), ("Brake", ""), ("Speed", "km/h"), ("nGear", "")]
@@ -359,6 +363,75 @@ def make_telemetry(raw, driver, lap_num):
     return fig
 
 
+# ─────────────────────────────────────────────
+# Sonification — turn a lap's telemetry into audio.
+# RPM -> pitch (a driver revving higher sounds higher-pitched).
+# Throttle -> volume (lift-off is audibly quieter than full throttle).
+# Brake -> a percussive "thump" on every braking zone, so you can
+# literally hear how often/hard a driver brakes without looking at
+# a chart. This is meant to expose the same style differences the
+# XGBoost features capture (throttle smoothness, braking frequency,
+# trail braking) through your ears instead of your eyes.
+# ─────────────────────────────────────────────
+SAMPLE_RATE = 22050
+
+def sonify_lap(lap_df, sample_rate: int = SAMPLE_RATE) -> tuple:
+    """Returns (audio: float32 np.array in [-1, 1], sample_rate)."""
+    n = len(lap_df)
+    if n < 2:
+        return None, sample_rate
+
+    lap_time = lap_df["LapTime_s"].iloc[0] if "LapTime_s" in lap_df.columns else np.nan
+    if pd.isna(lap_time) or lap_time <= 0:
+        lap_time = 90.0
+    duration = float(np.clip(lap_time / 8.0, 5.0, 18.0))
+
+    rpm      = lap_df["RPM"].ffill().bfill().values.astype(float) if "RPM" in lap_df.columns else np.full(n, 10000.0)
+    throttle = lap_df["Throttle"].fillna(0).values.astype(float) if "Throttle" in lap_df.columns else np.full(n, 50.0)
+    brake    = (lap_df["Brake"].fillna(0).values.astype(float) > 0).astype(float) if "Brake" in lap_df.columns else np.zeros(n)
+
+    t_control = np.linspace(0, duration, n)
+    n_samples = int(sample_rate * duration)
+    t_audio   = np.linspace(0, duration, n_samples)
+
+    rpm_i      = np.interp(t_audio, t_control, rpm)
+    throttle_i = np.interp(t_audio, t_control, throttle)
+
+    rpm_lo, rpm_hi = np.percentile(rpm[rpm > 0], [5, 95]) if np.any(rpm > 0) else (4000, 12000)
+    if rpm_hi <= rpm_lo:
+        rpm_hi = rpm_lo + 1000
+    freq = np.interp(rpm_i, [rpm_lo, rpm_hi], [90, 340])
+
+    # Continuous phase (cumulative) avoids clicks from frequency jumps.
+    phase = 2 * np.pi * np.cumsum(freq) / sample_rate
+    engine = 0.65 * sawtooth(phase) + 0.35 * sawtooth(2 * phase + 0.4)
+
+    amp = np.interp(throttle_i, [0, 100], [0.06, 0.8])
+    audio = engine * amp
+
+    # Percussive thump on every brake-on edge (rising edge in the
+    # original, unsmoothed control-point signal — interpolation would
+    # blur out short brake stabs otherwise).
+    brake_onsets = np.where(np.diff(brake, prepend=0) > 0)[0]
+    thump_len = int(0.09 * sample_rate)
+    thump_env = np.exp(-np.linspace(0, 12, thump_len))
+    rng = np.random.default_rng(42)
+    for onset_idx in brake_onsets:
+        t0 = int(t_control[onset_idx] / duration * n_samples)
+        end = min(t0 + thump_len, n_samples)
+        seg_len = end - t0
+        if seg_len <= 0:
+            continue
+        noise = rng.uniform(-1, 1, seg_len) * thump_env[:seg_len]
+        audio[t0:end] += 0.55 * noise
+
+    peak = np.max(np.abs(audio))
+    if peak > 0:
+        audio = (audio / peak) * 0.9
+
+    return audio.astype(np.float32), sample_rate
+
+
 def make_feature_importance(fi_df):
     df = fi_df.sort_values("importance")
     fig = go.Figure(go.Bar(
@@ -368,7 +441,7 @@ def make_feature_importance(fi_df):
                     colorscale=[[0, "#1a1a2e"], [0.4, "#3b3b6e"], [1, "#e10600"]],
                     showscale=False),
         text=[f"{v:.3f}" for v in df["importance"]],
-        textposition="outside", textfont=dict(size=9, color="#6b7280"),
+        textposition="outside", textfont=dict(size=9, color="#4a4a6a"),
     ))
     fig.update_layout(
         **base_layout(320),
@@ -399,7 +472,7 @@ def make_training_curve(history_df):
         yaxis=dict(title_text="Accuracy (%)", gridcolor=GRID_COL, range=[0, 105]),
         legend=dict(
             bgcolor=PLOT_BG,
-            bordercolor="#e6e6ef",
+            bordercolor="#1e1e2e",
             font=dict(size=10)
         ),
     )
@@ -423,7 +496,7 @@ all_drivers = config["drivers"]
 with st.sidebar:
     st.markdown("""
     <div style='font-family:Barlow Condensed;font-size:1.3rem;font-weight:800;
-    color:#14141f;letter-spacing:-0.01em;margin-bottom:2px;'>F1 Telemetry Lens</div>
+    color:#fff;letter-spacing:-0.01em;margin-bottom:2px;'>F1 Telemetry Lens</div>
     <div style='font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:0.16em;
     text-transform:uppercase;color:#e10600;margin-bottom:1.5rem;'>Driver Style Fingerprinting</div>
     """, unsafe_allow_html=True)
@@ -472,7 +545,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("""
-    <div style='font-size:0.65rem;color:#c7cad6;line-height:1.7;'>
+    <div style='font-size:0.65rem;color:#2a2a4a;line-height:1.7;'>
     DATA · FastF1<br>
     ML · XGBoost + 1D-CNN<br>
     VIZ · UMAP (32→2 dim)
@@ -500,14 +573,14 @@ stat_items = [
     ("#e10600", "XGBoost In-Track", "84.4%", "5-fold stratified OOF"),
     ("#f97316", "XGBoost Cross-Track", "61.2%", "GroupKFold, held-out circuits"),
     ("#a78bfa", "Silhouette",  "0.51",  "32-dim embeddings, cross-circuit"),
-    ("#ca8a04", "Races",       str(len(config["races"])), "2023–2024, 6 circuits"),
+    ("#facc15", "Races",       str(len(config["races"])), "2023–2024, 6 circuits"),
     ("#3b82f6", "Laps",        str(len(features_df)), "after quality filter"),
 ]
 cols = st.columns(len(stat_items))
 for col, (color, label, value, note) in zip(cols, stat_items):
     with col:
         st.markdown(f"""
-        <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-top:2px solid {color};
+        <div style='background:#0f0f18;border:1px solid #1e1e2e;border-top:2px solid {color};
         border-radius:6px;padding:1rem 1.1rem;'>
           <div class='stat-label'>{label}</div>
           <div class='stat-value' style='color:{color}'>{value}</div>
@@ -553,7 +626,7 @@ st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
 # Row: Blind ID (full width, styled panel)
 # ─────────────────────────────────────────────
 st.markdown("<div class='section-header'>Blind Identification Challenge</div>", unsafe_allow_html=True)
-st.markdown("""<p style='font-size:0.85rem;color:#6b7280;margin-bottom:1rem;margin-top:-0.5rem;'>
+st.markdown("""<p style='font-size:0.85rem;color:#4a4a6a;margin-bottom:1rem;margin-top:-0.5rem;'>
 Pick a random lap. The prediction shown is a genuine <b>out-of-fold</b> prediction, recorded once
 during cross-validation — the model that scored this exact lap never saw it during training. It is
 not the final model (which is fit on 100% of the data) re-scoring a lap it already memorized. Every
@@ -580,7 +653,7 @@ else:
         st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
         if st.button("🎲  Pick random lap", use_container_width=True, type="primary"):
             st.session_state["blind_idx"] = oof_df.sample(1).index[0]
-        st.markdown("""<div style='font-size:0.75rem;color:#8a8fa3;margin-top:0.75rem;line-height:1.6;'>
+        st.markdown("""<div style='font-size:0.75rem;color:#3a3a5a;margin-top:0.75rem;line-height:1.6;'>
         HAM and LEC are hardest to tell apart in cross-circuit mode — their trail-braking-heavy
         styles overlap most. VER and NOR hold up best on unseen tracks.
         </div>""", unsafe_allow_html=True)
@@ -591,23 +664,23 @@ else:
         pred_driver = blind[pred_col_prefix]
         probs       = {cls: blind[f"{prob_col_prefix}_{cls}"] for cls in xgb_le.classes_}
         correct     = pred_driver == true_driver
-        dcolor      = DRIVER_COLORS.get(true_driver, "#14141f")
-        verdict_color = "#16a34a" if correct else "#e10600"
+        dcolor      = DRIVER_COLORS.get(true_driver, "#fff")
+        verdict_color = "#22c55e" if correct else "#e10600"
         verdict_text  = "✓  CORRECT" if correct else "✗  WRONG"
 
         with bcol_result:
             st.markdown(f"""
-            <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-left:3px solid {dcolor};
+            <div style='background:#0f0f18;border:1px solid #1e1e2e;border-left:3px solid {dcolor};
             border-radius:8px;padding:1.25rem;'>
               <div style='font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:0.14em;
-              text-transform:uppercase;color:#8a8fa3;'>Actual · {blind['Race']} {int(blind['Season'])} · Lap {int(blind["LapNumber"])}</div>
+              text-transform:uppercase;color:#3a3a5a;'>Actual · {blind['Race']} {int(blind['Season'])} · Lap {int(blind["LapNumber"])}</div>
               <div style='font-family:Barlow Condensed;font-size:3rem;font-weight:800;
               color:{dcolor};line-height:1;margin:4px 0 2px;'>{true_driver}</div>
-              <div style='font-size:0.8rem;color:#6b7280;'>{DRIVER_NAMES.get(true_driver, true_driver)}
+              <div style='font-size:0.8rem;color:#4a4a6a;'>{DRIVER_NAMES.get(true_driver, true_driver)}
               &nbsp;·&nbsp; Lap time {blind['LapTime_s']:.2f}s</div>
               <div style='font-family:Barlow Condensed;font-size:1.1rem;font-weight:700;
               color:{verdict_color};letter-spacing:0.06em;margin-top:1rem;'>{verdict_text}</div>
-              <div style='font-size:0.72rem;color:#9aa0b4;margin-top:2px;'>Predicted: {pred_driver}</div>
+              <div style='font-size:0.72rem;color:#8a8aaa;margin-top:2px;'>Predicted: {pred_driver}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -624,9 +697,9 @@ else:
                   <div style='display:flex;justify-content:space-between;
                   font-family:Barlow Condensed;font-size:0.88rem;margin-bottom:3px;'>
                     <span style='color:{bc};font-weight:{weight};'>{prefix}{cls} — {DRIVER_NAMES.get(cls,cls)}</span>
-                    <span style='color:#9aa0b4;'>{prob*100:.1f}%</span>
+                    <span style='color:#8a8aaa;'>{prob*100:.1f}%</span>
                   </div>
-                  <div style='background:#eceef4;border-radius:3px;height:5px;'>
+                  <div style='background:#1a1a28;border-radius:3px;height:5px;'>
                     <div style='background:{bc};width:{prob*100:.1f}%;height:5px;
                     border-radius:3px;opacity:{opacity};transition:width 0.3s;'></div>
                   </div>
@@ -636,8 +709,8 @@ else:
 
             st.components.v1.html(
                 f"""
-                <div style='background:#fbfbfe;border:1px solid #e6e6ef;border-radius:8px;
-                padding:1.25rem;font-family:Inter;color:#1a1a2e;'>
+                <div style='background:#0f0f18;border:1px solid #1e1e2e;border-radius:8px;
+                padding:1.25rem;font-family:Inter;color:#dddde8;'>
                     {bars_html}
                 </div>
                 """,
@@ -682,8 +755,8 @@ else:
     else:
         with bcol_result:
             st.markdown("""
-            <div style='background:#fbfbfe;border:1px dashed #e6e6ef;border-radius:8px;
-            padding:2rem;text-align:center;color:#c7cad6;
+            <div style='background:#0f0f18;border:1px dashed #1e1e2e;border-radius:8px;
+            padding:2rem;text-align:center;color:#2a2a4a;
             font-family:Barlow Condensed;font-size:0.9rem;letter-spacing:0.06em;'>
             AWAITING SELECTION
             </div>""", unsafe_allow_html=True)
@@ -709,10 +782,57 @@ if telem_lap is not None:
     Try selecting different drivers on the same lap number — the style differences are visible to the naked eye.
     </div>""", unsafe_allow_html=True)
 else:
-    st.markdown("""<div style='background:#fbfbfe;border:1px dashed #e6e6ef;border-radius:6px;
-    padding:1.5rem;font-size:0.85rem;color:#8a8fa3;'>
+    st.markdown("""<div style='background:#0f0f18;border:1px dashed #1e1e2e;border-radius:6px;
+    padding:1.5rem;font-size:0.85rem;color:#3a3a5a;'>
     Raw telemetry is not available in this deployed environment (files excluded due to size ~200MB).
     Clone the repo and run <code>python src/data/fetch_telemetry.py</code> to enable this panel locally.
+    </div>""", unsafe_allow_html=True)
+
+st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+# Row: Sonified Lap — hear the style instead of reading it
+# ─────────────────────────────────────────────
+st.markdown("<div class='section-header'>🔊 Sonified Lap — Hear the Style</div>", unsafe_allow_html=True)
+st.markdown("""<p style='font-size:0.85rem;color:#4a4a6a;margin-bottom:1rem;margin-top:-0.5rem;'>
+Every lap turned into ~10 seconds of sound: <b>RPM → pitch</b> (higher revs = higher note),
+<b>throttle → volume</b> (lift-off is audibly quieter), <b>brake → a percussive thump</b> on every
+braking zone. Play the same lap for two drivers back to back — a smooth, trail-braking style sounds
+different from a stab-the-brakes style, no chart required.
+</p>""", unsafe_allow_html=True)
+
+if telem_lap is not None:
+    scol_a, scol_b = st.columns(2, gap="large")
+
+    with scol_a:
+        st.markdown(f"**{telem_driver} — {DRIVER_NAMES.get(telem_driver, telem_driver)}**")
+        if st.button("▶  Generate sound", key="sonify_a", use_container_width=True):
+            lap_df_a = get_lap_df(raw[telem_race], telem_driver, float(telem_lap))
+            st.session_state["sonify_a_audio"] = sonify_lap(lap_df_a)
+        if "sonify_a_audio" in st.session_state and st.session_state["sonify_a_audio"][0] is not None:
+            audio_a, sr_a = st.session_state["sonify_a_audio"]
+            st.audio(audio_a, sample_rate=sr_a)
+
+    with scol_b:
+        compare_driver = st.selectbox(
+            "Compare with", options=["— none —"] + [d for d in all_drivers if d != telem_driver],
+            format_func=lambda x: x if x == "— none —" else f"{x} — {DRIVER_NAMES.get(x, x)}",
+            key="sonify_compare_driver",
+        )
+        if compare_driver != "— none —":
+            has_compare = not raw[telem_race][compare_driver].empty
+            if st.button("▶  Generate sound", key="sonify_b", use_container_width=True, disabled=not has_compare):
+                lap_df_b = get_lap_df(raw[telem_race], compare_driver, float(telem_lap))
+                st.session_state["sonify_b_audio"] = sonify_lap(lap_df_b)
+            if "sonify_b_audio" in st.session_state and st.session_state["sonify_b_audio"][0] is not None:
+                audio_b, sr_b = st.session_state["sonify_b_audio"]
+                st.audio(audio_b, sample_rate=sr_b)
+            elif not has_compare:
+                st.caption(f"No telemetry for {compare_driver} on this lap/race.")
+else:
+    st.markdown("""<div style='background:#0f0f18;border:1px dashed #1e1e2e;border-radius:6px;
+    padding:1.5rem;font-size:0.85rem;color:#3a3a5a;'>
+    Raw telemetry is not available in this deployed environment, so there's nothing to sonify.
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)

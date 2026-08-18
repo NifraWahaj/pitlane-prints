@@ -21,7 +21,7 @@ The project has two modelling stages:
 1. **XGBoost baseline** trained on nine hand-crafted per-lap features (braking aggression, throttle smoothness, coasting ratio, etc.) — achieves **84.4% within-track accuracy** (5-fold stratified OOF) and **61.2% cross-circuit accuracy** (GroupKFold, entire circuits held out) across 6 drivers and 12 races spanning 2 seasons.
 2. **1D-CNN encoder** trained directly on raw telemetry sequences (no feature engineering) — learns a **32-dimensional embedding per lap**, producing silhouette-separated driver clusters (score **0.51** in 32D) visualised with UMAP, evaluated on held-out circuits.
 
-The result is a live Streamlit dashboard where you can explore driver style profiles, inspect raw telemetry, and test the model blind — pick a random lap and see if the classifier identifies the driver.
+The result is a live Streamlit dashboard where you can explore driver style profiles, inspect raw telemetry, verify the model against a genuinely held-out lap in the Blind Identification Challenge, and even **listen** to a lap's driving style — RPM mapped to pitch, throttle to volume, braking to a percussive thump.
 
 ---
 ## Dashboard
@@ -32,14 +32,17 @@ Driver style fingerprints, learned embedding space (UMAP), and key model metrics
 ![Dashboard Overview](outputs/figures/screenshot_dashboard_01.png)
 
 ### Blind Identification Challenge
-Select a random lap and see whether the model can correctly identify the driver from telemetry-derived features alone.
+Select a random lap and see whether the model correctly identifies the driver — using a genuine **out-of-fold** prediction (the model never saw this lap during the fold that scored it), with a toggle between within-track and cross-circuit evaluation. A "Verify it yourself" panel shows the exact feature values fed to the model and the raw telemetry trace, so the result isn't just take-our-word-for-it.
 
 ![Blind Identification](outputs/figures/screenshot_dashboard_02.png)
 
 ### Raw Telemetry Explorer
-Inspect throttle, brake, speed, and gear traces for any driver and lap.
+Inspect throttle, brake, speed, and gear traces for any driver, race, and lap.
 
 ![Telemetry Explorer](outputs/figures/screenshot_dashboard_03.png)
+
+### Sonified Lap
+Turn a lap into ~10 seconds of sound instead of a chart: RPM drives pitch, throttle drives volume, and every braking zone lands as an audible thump. Play the same lap for two drivers back to back and the style difference — smooth vs. stab-the-brakes — is audible, not just visible.
 
 ### Model Analysis
 Feature importance rankings and CNN training performance.
